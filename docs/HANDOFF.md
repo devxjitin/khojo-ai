@@ -13,7 +13,7 @@ Phase 0 (Foundation, CI/CD, Benchmark) - **code is written and CI-green. #4 and 
 
 | Sprint item | Code | Deployed / live |
 |---|---|---|
-| S1: repo, CI `checks.yml`, Android shell (flavors `ota` + `play`), Terraform bootstrap | ✅ on `main` | Bootstrap ✅ **applied** |
+| S1: repo, CI `checks.yml`, Android shell (flavors since removed, see ADR-002), Terraform bootstrap | ✅ on `main` | Bootstrap ✅ **applied** |
 | S2A: OTA bucket + `khojo-updates` Lambda + API, `publish-update.ps1`, `publish-ota.yml` | ✅ PR #1 (green) | ✅ **applied** (10 Nov 2026, from PR #1's branch); endpoint answers 401 without key, 404 with key until the first release |
 | S2B: in-app updater (ota flavor only) | ✅ PR #2 (green, stacked on #1) | ❌ never run on a phone |
 | S2C: SigLIP 2 benchmark script, Hinglish dictionary, ADR-003/004 | ✅ PR #3 (green, stacked on #2) | ❌ benchmark **never run** |
@@ -41,7 +41,7 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
 3. **GitHub secrets** (ask the user first; do not put secrets in chat): `KHOJO_OTA_KEYSTORE` (base64), `KHOJO_OTA_KEYSTORE_PASSWORD`, `KHOJO_OTA_KEY_ALIAS`, `APP_CONFIG_PROPERTIES` (= `API_BASE_URL=<api_url>` and `BETA_KEY=<same key>`). **GitHub variable** `KHOJO_OTA_BUCKET=<ota_bucket output>`.
 4. **Merge in order:** #4, #5 (docs), #1, #2, #3 (stacked PRs retarget to `main` on their own). Merging #1 triggers `Publish OTA`, which fails unless steps 1-3 are done.
    - PR #1's `docs/CI_CD.md` still says "Cognito sign-in replaces [the beta key] in Sprint 7". Change it to "Firebase JWT + activation key replace it in Sprint 4B" while merging.
-5. **Drop the `play` flavor before any phone install** (new small PR, ADR-002): one build, `applicationId = com.khojoai.app`, `REQUEST_INSTALL_PACKAGES` and the updater move from `src/ota` to `src/main`, delete the `playUpload` signing config, CI runs `testDebugUnitTest lintDebug`, `ci_changes.py`/`publish-update.ps1`/`publish-ota.yml` use `assembleRelease`. Must land before the first install, because changing the app id later forces every user to reinstall.
+5. ~~Drop the `play` flavor~~ **Done** in the `single-build` PR (one build, `com.khojoai.app`, updater in `src/main`, `assembleRelease`). Merge it right after #3, before the first APK is installed anywhere.
 6. First OTA build -> install the APK **manually once** on a phone -> merge a tiny change (bump `changelog.md`) -> confirm the phone offers the update. This whole chain has never run end to end; expect small fixes.
 7. Branch protection on `main` (PR required, `Required checks`, no force-push). Not set; private repos on a Free plan may not allow it. Check.
 8. Then Sprint 3 (app shell, onboarding, Photo Picker, ObjectBox) per the delivery plan. Activation keys come in Sprint 4B (Firebase anon auth + App Check, `khojo-licenses` table, `license` Lambda, Activation screen); the key admin web app in 7C; paid key sales in 8B.
@@ -59,7 +59,7 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
 
 ## Decisions made and things to know
 
-- **Two Android flavors today** (`ota` = `com.khojoai.app.beta`, `play` = `com.khojoai.app`). **Being collapsed into one build** (`com.khojoai.app`, OTA updater in main), see next step 5 and ADR-002.
+- **One Android build** (`com.khojoai.app`). The `ota`/`play` flavors were removed (ADR-002): updater code lives in `src/main`, `REQUEST_INSTALL_PACKAGES` is in the main manifest, release APK is `app/build/outputs/apk/release/app-release.apk`.
 - **Beta key** protects the update endpoint for now. It is inside the APK, so it only keeps casual visitors out. Firebase JWT + activation keys replace it in Sprint 4B.
 - **Activation keys** (ADR-002): `KHOJ-XXXX-XXXX-XXXX-XXXX`, only the SHA-256 is stored, one phone at a time, max 1 move a day, `durationDays` from first activation, 7 days offline grace. Unlike Ultron, every cloud call checks the license + plan quota on the server. Avoid the two bugs from Ultron's 10 Nov audit: reissue must keep the running expiry, and the dashboard must count a reissued sale once.
 - **Hilt is pinned to 2.58.** 2.57 cannot read Kotlin 2.3 metadata; 2.59/2.60 need AGP 9 (we are on AGP 8.13.2, Kotlin 2.3.21).
@@ -73,7 +73,7 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
 ## Not verified yet (do not claim these work)
 
 - Anything on a real phone, including the update flow.
-- `publish-ota.yml` and `publish-update.ps1` against real AWS (script only syntax-checked; `assembleOtaRelease` was built locally, unsigned).
+- `publish-ota.yml` and `publish-update.ps1` against real AWS (script only syntax-checked; `assembleRelease` (formerly `assembleOtaRelease`) was built locally, unsigned).
 - The Lambda against real S3 (unit-tested with fakes only).
 - `benchmark_siglip.py` (compiles, pure helpers unit-tested; needs torch, a GPU and the dataset).
 - Known small gaps in the updater: no manual "Check for updates" button, checks only at app start, no Wi-Fi-only option.

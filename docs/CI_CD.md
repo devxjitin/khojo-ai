@@ -17,7 +17,7 @@ Ported from `ultron-android` and extended. Full design: [Delivery Plan, section 
 Runs on every PR and can be called by the release workflow. `scripts/ci_changes.py` reads the full diff and sets `android`, `backend`, `infra`, `eval`, `publish`. Docs-only PRs still run the cheap workflow-logic tests and the always-running `Required checks` gate, so a skipped job can never leave a required status pending.
 
 - **Version bumped:** a PR that reaches the APK must put a newer `## x.y.z` on top of `changelog.md`.
-- **Android:** unit tests + lint with a fixed `-PappVersionCode=1`. Today both flavors (`ota`, `play`); after the flavor collapse (ADR-002) just `testDebugUnitTest lintDebug`.
+- **Android:** `testDebugUnitTest lintDebug` with a fixed `-PappVersionCode=1`. One build, no flavors (ADR-002).
 - **Search-quality gate:** `eval/run_eval.py --quick` fails if Recall@5 or MRR@10 falls more than 2 points below `eval/baseline.json`. It passes until the baseline exists (created after the Sprint 2 benchmark).
 - **Infra:** `terraform fmt -check` and `validate` on each root module.
 
@@ -29,7 +29,7 @@ Runs on every PR and can be called by the release workflow. `scripts/ci_changes.
 
 See Delivery Plan section 3.7. AWS access is OIDC only (no AWS keys in GitHub). Signing keys are stored as secrets **and** backed up offline.
 
-## Releases (OTA beta channel)
+## Releases (OTA, the only channel)
 
 `Publish OTA` runs on `main` pushes that touch `android/**`, the publish script, the workflow or local actions. Order matters:
 
@@ -50,4 +50,4 @@ Manual run (`Actions -> Publish OTA -> Run workflow`) takes optional notes and a
 3. **GitHub variables:** `AWS_OTA_PUBLISH_ROLE_ARN` (bootstrap output) and `KHOJO_OTA_BUCKET` (prod output `ota_bucket`).
 4. Apply `infrastructure/envs/prod` (see `infrastructure/README.md`).
 
-The update endpoint uses a shared **beta key** for now. It is compiled into the beta APK, so it only keeps casual visitors out; Cognito sign-in replaces it in Sprint 7.
+The update endpoint uses a shared **beta key** for now. It is compiled into the APK, so it only keeps casual visitors out; Firebase JWT + the activation key replace it in Sprint 4B.

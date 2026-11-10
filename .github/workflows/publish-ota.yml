@@ -119,8 +119,8 @@ jobs:
         with:
           name: ota-apk
           path: |
-            android/app/build/outputs/apk/ota/release/app-ota-release.apk
-            android/app/build/outputs/apk/ota/release/ota-manifest.json
+            android/app/build/outputs/apk/release/app-release.apk
+            android/app/build/outputs/apk/release/ota-manifest.json
           if-no-files-found: error
           retention-days: 3
       - name: Save OTA timing profile
@@ -149,7 +149,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ota-apk
-          path: android/app/build/outputs/apk/ota/release
+          path: android/app/build/outputs/apk/release
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_OTA_PUBLISH_ROLE_ARN }}
