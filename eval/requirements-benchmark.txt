@@ -1,0 +1,6 @@
+# Only needed on the benchmark machine, not in CI. SigLIP 2 needs transformers >= 4.49.
+torch>=2.4
+transformers>=4.49
+pillow>=10
+sentencepiece
+protobuf

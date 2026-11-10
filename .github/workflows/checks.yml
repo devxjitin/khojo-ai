@@ -149,6 +149,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Eval unit tests (metrics, Hinglish normalizer, dictionary)
+        run: python -m unittest discover -s eval -p 'test_*.py' -v
       - name: Quick eval against baseline (fails if Recall@5 or MRR@10 drops by more than 2 points)
         run: python eval/run_eval.py --quick --baseline eval/baseline.json --max-drop 0.02
 
