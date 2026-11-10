@@ -1,0 +1,6 @@
+id,language,category,query,relevant_asset_ids
+q001,en,color,red saree with golden border,
+q002,hi,object,लाल साड़ी,
+q003,hinglish,color,laal saree golden border wali,
+q004,hinglish,object,ped wali photo,
+q005,en,ocr_amount,screenshot with payment of 2499 rupees,

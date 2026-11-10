@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Khojo AI</string>
+    <string name="tagline">Bas bolo. Khojo.</string>
+    <string name="search_hint">Kya dhoondhna hai?</string>
+</resources>

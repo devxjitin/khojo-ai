@@ -1,0 +1,170 @@
+name: Checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      publish:
+        description: Whether this change affects an APK input
+        value: ${{ jobs.changes.outputs.publish }}
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      android: ${{ steps.plan.outputs.android }}
+      backend: ${{ steps.plan.outputs.backend }}
+      infra: ${{ steps.plan.outputs.infra }}
+      eval: ${{ steps.plan.outputs.eval }}
+      publish: ${{ steps.plan.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        run: python scripts/ci_changes.py
+
+  version:
+    name: Version bumped
+    needs: changes
+    # Merging to main publishes an update, so the pull request itself must say which version that update is.
+    if: github.event_name == 'pull_request' && needs.changes.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require a newer version at the top of changelog.md
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python scripts/check_version_bump.py "$BASE_SHA"
+
+  ci:
+    name: Workflow logic
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Change-selection and version-bump regression tests
+        run: python -m unittest discover -s tests/ci -v
+
+  android:
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: ./.github/actions/gradle-memory
+      - name: Unit tests and lint (both flavors)
+        working-directory: android
+        run: ./gradlew testOtaDebugUnitTest testPlayDebugUnitTest lintOtaDebug lintPlayDebug -PappVersionCode=1 --build-cache --profile --console=plain
+      - name: Save Android timing profile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-gradle-profile
+          path: android/build/reports/profile/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Lint and test inference service (skipped until the service exists)
+        run: |
+          if [ -f inference-service/requirements.txt ]; then
+            python -m pip install -r inference-service/requirements.txt ruff pytest
+            ruff check inference-service
+            python -m pytest inference-service -q
+          else
+            echo "::notice::inference-service not created yet (Sprint 4)."
+          fi
+      - name: Build Docker image (no push)
+        run: |
+          if [ -f inference-service/Dockerfile ]; then docker build -t khojo-inference:ci inference-service; fi
+
+  infra:
+    needs: changes
+    if: needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: Format check
+        run: terraform fmt -check -recursive infrastructure
+      - name: Validate every root module
+        run: |
+          set -euo pipefail
+          for dir in infrastructure/bootstrap infrastructure/envs/staging infrastructure/envs/prod; do
+            if ls "$dir"/*.tf >/dev/null 2>&1; then
+              terraform -chdir="$dir" init -backend=false -input=false
+              terraform -chdir="$dir" validate
+            fi
+          done
+
+  eval:
+    name: Search-quality gate
+    needs: changes
+    if: needs.changes.outputs.eval == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Quick eval against baseline (fails if Recall@5 or MRR@10 drops by more than 2 points)
+        run: python eval/run_eval.py --quick --baseline eval/baseline.json --max-drop 0.02
+
+  required:
+    name: Required checks
+    needs: [changes, version, ci, android, backend, infra, eval]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require successful applicable jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          jobs = json.loads(os.environ['RESULTS'])
+          bad = [name for name, job in jobs.items() if job['result'] not in ('success', 'skipped')]
+          bad += [name for name in ('changes', 'ci') if jobs[name]['result'] != 'success']
+          for job, flag in (('android', 'android'), ('backend', 'backend'), ('infra', 'infra'), ('eval', 'eval')):
+              if jobs['changes'].get('outputs', {}).get(flag) == 'true' and jobs[job]['result'] != 'success':
+                  bad.append(job)
+          if bad:
+              sys.exit('Required jobs failed: ' + ', '.join(sorted(set(bad))))
+          print('All applicable checks passed.')
+          PY

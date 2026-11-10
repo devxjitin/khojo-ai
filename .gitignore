@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.DS_Store
+.idea/
+.vscode/
+eval/data/
+eval/reports/

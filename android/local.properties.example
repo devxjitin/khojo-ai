@@ -1,0 +1,11 @@
+## Copy to local.properties (gitignored). Never commit real values.
+sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
+
+# Base URL of the Khojo API (not a secret). Until the backend exists this placeholder is fine.
+API_BASE_URL=https://api.example.com
+
+# Release signing for the Play upload key (Sprint 6+). CI reads these from GitHub secrets instead.
+# RELEASE_STORE_FILE=keystore/play-upload.jks
+# RELEASE_STORE_PASSWORD=
+# RELEASE_KEY_ALIAS=
+# RELEASE_KEY_PASSWORD=
