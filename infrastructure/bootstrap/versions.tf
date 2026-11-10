@@ -8,15 +8,14 @@ terraform {
     }
   }
 
-  # First apply runs with local state; then uncomment this block and run
-  # `terraform init -migrate-state` so the state moves into the bucket created below.
-  # backend "s3" {
-  #   bucket         = "khojo-tf-state-<account-id>"
-  #   key            = "bootstrap/terraform.tfstate"
-  #   region         = "ap-south-1"
-  #   dynamodb_table = "khojo-tf-lock"
-  #   encrypt        = true
-  # }
+  # State lives in the bucket this stack itself created (first apply ran with local state, then migrated).
+  backend "s3" {
+    bucket         = "khojo-tf-state-143920986615"
+    key            = "bootstrap/terraform.tfstate"
+    region         = "ap-south-1"
+    dynamodb_table = "khojo-tf-lock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
