@@ -72,4 +72,4 @@ Local files (not in git): `~/.khojo-android/ota.keystore`, `ota_keystore_passwor
 
 - `benchmark_siglip.py` (compiles, pure helpers unit-tested; needs torch, a GPU and the dataset).
 - Anything beyond the empty shell: search, indexing, backend inference, activation keys, billing-free key sales.
-- The Android 16/other-device behaviour of the install flow (tested on one phone only).
+- The install and update flow on other phones or Android versions (tested on one phone only).
