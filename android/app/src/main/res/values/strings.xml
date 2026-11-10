@@ -4,6 +4,20 @@
     <string name="tagline">Bas bolo. Khojo.</string>
     <string name="search_hint">Kya dhoondhna hai?</string>
 
+    <string name="home_add_photos">Add photos</string>
+
+    <string name="consent_title">Allow cloud AI?</string>
+    <string name="consent_body">To understand your photos, Khojo can send a small, resized copy to our secure server. It is used only to build the search and is deleted within 24 hours. Your original photos never leave your phone.</string>
+    <string name="consent_note">You can change this later. If you say no, cloud AI stays off.</string>
+    <string name="consent_allow">Allow</string>
+    <string name="consent_deny">Not now</string>
+
+    <string name="import_title">Add photos</string>
+    <string name="import_total">%1$d photos added</string>
+    <string name="import_last">Selected %1$d: %2$d new, %3$d already added</string>
+    <string name="import_pick">Choose photos</string>
+    <string name="import_back">Back</string>
+
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Get started</string>

@@ -3,6 +3,12 @@
 The first "## x.y.z" heading is the app version. The "###" sections and "-" bullets below it become the update notes shown on the phone.
 Phase = minor, mini-sprint = patch (e.g. Phase 1 Sprint 4 Mini-C = 0.1.5).
 
+## 0.1.1 - 2026-11-10
+
+### Added
+- Consent screen after the intro: cloud AI is off unless you allow it.
+- "Add photos" button: pick photos with the system picker and see how many were added.
+
 ## 0.1.0 - 2026-11-10
 
 ### Added

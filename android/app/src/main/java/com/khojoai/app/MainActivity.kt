@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -21,6 +22,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.khojoai.app.ui.AppViewModel
+import com.khojoai.app.ui.ConsentScreen
+import com.khojoai.app.ui.ImportScreen
 import com.khojoai.app.ui.OnboardingScreen
 import com.khojoai.app.ui.Routes
 import com.khojoai.app.ui.theme.KhojoTheme
@@ -41,10 +44,17 @@ class MainActivity : ComponentActivity() {
                         composable(Routes.ONBOARDING) {
                             OnboardingScreen(onFinish = {
                                 appViewModel.finishOnboarding()
-                                nav.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                                nav.navigate(Routes.CONSENT) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
                             })
                         }
-                        composable(Routes.HOME) { HomeScreen() }
+                        composable(Routes.CONSENT) {
+                            ConsentScreen(onAnswer = { cloud ->
+                                appViewModel.saveConsent(cloud)
+                                nav.navigate(Routes.HOME) { popUpTo(Routes.CONSENT) { inclusive = true } }
+                            })
+                        }
+                        composable(Routes.HOME) { HomeScreen(onAddPhotos = { nav.navigate(Routes.IMPORT) }) }
+                        composable(Routes.IMPORT) { ImportScreen(appViewModel, onBack = { nav.popBackStack() }) }
                     }
                 }
             }
@@ -53,7 +63,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun HomeScreen() {
+private fun HomeScreen(onAddPhotos: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
@@ -63,6 +73,9 @@ private fun HomeScreen() {
         Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge)
         // The version is handy when checking that an OTA update arrived.
         Text("v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium)
+        Button(onClick = onAddPhotos, modifier = Modifier.padding(top = 24.dp)) {
+            Text(stringResource(R.string.home_add_photos))
+        }
         // Update prompt (the app updates itself from our AWS bucket).
         UpdateCard(Modifier.padding(top = 24.dp))
     }
