@@ -9,6 +9,12 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_repo_subject" {
+  type        = string
+  default     = ""
+  description = "Subject prefix GitHub puts in OIDC tokens, without the leading repo:, e.g. owner@123/khojo-ai@456. Empty means <owner>/<repo>."
+}
+
 variable "budget_email" {
   description = "Email that receives AWS Budget alerts."
   type        = string
