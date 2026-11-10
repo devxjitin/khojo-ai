@@ -23,3 +23,18 @@ Then:
 5. Write down your credit balance, expiry date and which services it covers (Billing → Credits).
 
 `terraform fmt -check` and `terraform validate` run in CI (`infra` job); `terraform fmt -recursive` before you commit.
+
+## Prod environment (OTA bucket + update API) - Sprint 2
+
+After the bootstrap and the state migration:
+
+```bash
+cd infrastructure/envs/prod
+export TF_VAR_beta_key="<long random string>"        # also goes into APP_CONFIG_PROPERTIES as BETA_KEY
+terraform init -backend-config="bucket=khojo-tf-state-<account-id>" \
+  -backend-config="key=envs/prod/terraform.tfstate" -backend-config="region=ap-south-1" \
+  -backend-config="dynamodb_table=khojo-tf-lock" -backend-config="encrypt=true"
+terraform apply
+```
+
+Outputs: `api_url` (use as `API_BASE_URL`) and `ota_bucket` (GitHub variable `KHOJO_OTA_BUCKET`). Map `api.<your-domain>` to the API later (custom domain + ACM certificate).
