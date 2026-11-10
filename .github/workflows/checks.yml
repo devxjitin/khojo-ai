@@ -74,9 +74,9 @@ jobs:
           packages: "platform-tools platforms;android-36 build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - uses: ./.github/actions/gradle-memory
-      - name: Unit tests and lint (both flavors)
+      - name: Unit tests and lint
         working-directory: android
-        run: ./gradlew testOtaDebugUnitTest testPlayDebugUnitTest lintOtaDebug lintPlayDebug -PappVersionCode=1 --build-cache --profile --console=plain
+        run: ./gradlew testDebugUnitTest lintDebug -PappVersionCode=1 --build-cache --profile --console=plain
       - name: Save Android timing profile
         if: always()
         uses: actions/upload-artifact@v4

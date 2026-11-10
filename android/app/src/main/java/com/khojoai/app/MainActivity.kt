@@ -38,9 +38,9 @@ private fun HomeScreen() {
     ) {
         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
         Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge)
-        // Shows which distribution this build is (aws-ota or google-play) and its version, handy when checking OTA updates.
-        Text("v${BuildConfig.VERSION_NAME} - ${BuildConfig.UPDATE_CHANNEL}", style = MaterialTheme.typography.labelMedium)
-        // Beta (ota) build: update prompt. The Play build shows nothing here.
+        // The version is handy when checking that an OTA update arrived.
+        Text("v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelMedium)
+        // Update prompt (the app updates itself from our AWS bucket).
         UpdateCard(Modifier.padding(top = 24.dp))
     }
 }
