@@ -1,6 +1,6 @@
 # ADR-003: Image/text model choice (SigLIP 2 Base vs So400m)
 
-- **Status:** Proposed - decided after the Sprint 2 benchmark (`eval/README.md`)
+- **Status:** Proposed. The user tests with their own images on their own phone and makes the call; Claude does not run the benchmark. **Working default: Base** until then (`eval/README.md`).
 - **Context:** Search quality is the product. So400m (1,152-d, ~4.5 GB) may be more accurate than Base (768-d, ~1.5 GB) but costs more, is slower on CPU, and cannot run on a phone. Base can later run on-device (INT8), which removes cloud indexing cost.
 - **Decision rule (blueprint 7.4):** pick So400m only if Recall@5 improves by at least 5 points over Base on our own photos and queries (English, Hindi and Hinglish) **and** cost per 1,000 inferences is sustainable. Otherwise pick Base.
 - **Result (fill in after the run):**
@@ -15,6 +15,6 @@
 | INR per 1,000 images / queries | | |
 | Hinglish: original vs rewrite vs dual | | |
 
-- **Decision:** _pending_
+- **Decision:** _pending the user's own testing_ (default Base)
 - **Pinned:** model revision + checksum in `inference-service/models.lock`; vector dimension (768 or 1,152) in the ObjectBox schema. Changing the model later means a full reindex (a new `modelVersion`).
 - **Consequences:** (fill in)

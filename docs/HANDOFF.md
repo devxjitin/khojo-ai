@@ -18,7 +18,7 @@ Phase 0 is almost done: Sprint 1 and Sprint 2 (A, B, C) are **merged and deploye
 | `envs/prod`: OTA bucket + `khojo-updates` Lambda + API | ✅ applied |
 | `Publish OTA` (build, sign, S3, `latest.json`) | ✅ works; versions 0.0.4 and 0.0.5 published |
 | In-app updater | ✅ verified on a real phone: installed 0.0.4, got the update card, installed 0.0.5 |
-| SigLIP 2 benchmark script + Hinglish dictionary + ADR-003/004 | ✅ merged; **benchmark never run** (needs dataset + GPU) |
+| SigLIP 2 benchmark script + Hinglish dictionary + ADR-003/004 | ✅ merged. **Benchmark/testing is owned by the user** (they test on their own phone with their own images); Claude does not run it and no GPU is needed now |
 
 **The app today is an empty shell** (title, tagline, version, update card). No search, no photo picking, no sign-in, no activation screen yet.
 
@@ -45,9 +45,9 @@ Local files (not in git): `~/.khojo-android/ota.keystore`, `ota_keystore_passwor
 ## Needs the user (cannot be done by Claude)
 
 - Run `aws login` when the session expires (use `aws configure export-credentials --format process` to feed Terraform).
-- Request GPU quota in Mumbai (Service Quotas): "Running On-Demand G and VT instances" and "All G and VT Spot Instance Requests". Approval can take days, and the benchmark needs it.
+- **GPU quota: not needed now.** Mumbai quota is 0 (checked 10 Nov: G/VT on-demand 0, G/VT spot 0, P 0; no request pending). Request it only when Sprint 8C (growth infra, GPU Spot batch worker) gets close, since approval can take days.
 - Note AWS credit balance, expiry date and which services it covers (Billing -> Credits).
-- Build the benchmark dataset: ~1,000 consented photos + 100+ labelled queries (`eval/README.md`; never commit photos, the repo is public), run the benchmark on a GPU box, fill in ADR-003 and create `eval/baseline.json`.
+- **Testing is the user's job**, not Claude's: add images to the phone, test search quality yourself, and tell Claude which model (Base or So400m) to pin. Until then the working default is **SigLIP 2 Base** (cheaper, faster, can run on-device later). Record the result in ADR-003 and, if you want the CI quality gate, create `eval/baseline.json` (`eval/README.md`; never commit photos, the repo is public).
 - 10-15 seller interviews, trademark check for "Khojo AI", domain mapping for `api.<domain>`.
 - Before Sprint 4B: a Firebase project for Khojo (Anonymous Auth + App Check with Play Integrity, device integrity only) and its `google-services.json`.
 - Before Sprint 7C: a Resend account with the domain verified (DKIM/SPF), API key stored as SSM SecureString `/khojo/resend-api-key`; admin Google email(s) for `ADMIN_EMAILS`.
@@ -70,6 +70,7 @@ Local files (not in git): `~/.khojo-android/ota.keystore`, `ota_keystore_passwor
 
 ## Not verified yet (do not claim these work)
 
-- `benchmark_siglip.py` (compiles, pure helpers unit-tested; needs torch, a GPU and the dataset).
+- `benchmark_siglip.py` (compiles, pure helpers unit-tested; never run. The user decides if and when to run it; CPU works for Base, only So400m really wants a GPU).
+- Search quality of any model on real photos (the user tests this themselves).
 - Anything beyond the empty shell: search, indexing, backend inference, activation keys, billing-free key sales.
 - The install and update flow on other phones or Android versions (tested on one phone only).

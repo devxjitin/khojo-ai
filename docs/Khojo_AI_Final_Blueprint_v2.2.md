@@ -1435,9 +1435,9 @@ gantt
 - [ ] 10–15 sellers/creators ke interviews (kaise search karte hain, kitna time jaata hai, kitna denge)
 - [ ] Trademark check: "Khojo AI" (domain ✅ already hai)
 - [ ] AWS credits: balance + expiry + eligible services note karo
-- [ ] Mumbai mein **GPU (G-instance) + Spot vCPU quota increase** request daalo
-- [ ] 1,000 image dataset + 100 queries + labels banana
-- [ ] SigLIP 2 **Base vs So400m** benchmark (Recall@5, MRR, latency, RAM, ₹/1000)
+- [ ] ~~Mumbai mein GPU (G-instance) + Spot vCPU quota increase request~~ → **8C se pehle** (abhi nahi chahiye; quota 0 hai, 10 Nov 2026)
+- [ ] 1,000 image dataset + 100 queries + labels banana → **user khud** (apne phone ki images se)
+- [ ] SigLIP 2 **Base vs So400m** testing (Recall@5, MRR, latency, RAM, ₹/1000) → **user khud karega**, Claude nahi. Tab tak default **Base**
 - [ ] Lambda vs EC2 vs GPU cold start + cost test
 - [ ] Hinglish dictionary v0 (~500 words) + test
 - [ ] Consent UX + retention policy final

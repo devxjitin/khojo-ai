@@ -19,7 +19,7 @@ Then:
    (`AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_DEPLOY_ROLE_ARN`, `AWS_PLAN_ROLE_ARN`) and set `AWS_REGION=ap-south-1`.
 2. Uncomment the `backend "s3"` block in `versions.tf`, fill in the account id, and run `terraform init -migrate-state`.
 3. Create GitHub Environments `staging` and `prod` (add yourself as required reviewer on `prod`).
-4. In AWS Service Quotas (ap-south-1) request **Running On-Demand G and VT instances** and **All G and VT Spot Instance Requests** (GPU approval can take days).
+4. *(Postponed until Sprint 8C, not needed now.)* In AWS Service Quotas (ap-south-1) request **Running On-Demand G and VT instances** and **All G and VT Spot Instance Requests** (GPU approval can take days). Current quota is 0.
 5. Write down your credit balance, expiry date and which services it covers (Billing → Credits).
 
 `terraform fmt -check` and `terraform validate` run in CI (`infra` job); `terraform fmt -recursive` before you commit.
