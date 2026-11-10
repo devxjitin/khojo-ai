@@ -9,7 +9,7 @@ Repo: https://github.com/devxjitin/khojo-ai (**public**, owner `devxjitin`; publ
 
 ## Where we are
 
-Phase 0 is almost done: Sprint 1 and Sprint 2 (A, B, C) are **merged and deployed**, and the whole OTA chain works end to end.
+Phase 0 is done and **Sprint 3 is done** (3A, 3B, 3C merged; app version is **0.1.3**, which also fixed the app closing after Allow on the consent screen). The whole OTA chain works end to end.
 
 | Item | State |
 |---|---|
@@ -20,7 +20,9 @@ Phase 0 is almost done: Sprint 1 and Sprint 2 (A, B, C) are **merged and deploye
 | In-app updater | ✅ verified on a real phone: installed 0.0.4, got the update card, installed 0.0.5 |
 | SigLIP 2 benchmark script + Hinglish dictionary + ADR-003/004 | ✅ merged. **Benchmark/testing is owned by the user** (they test on their own phone with their own images); Claude does not run it and no GPU is needed now |
 
-**The app today is an empty shell** (title, tagline, version, update card). No search, no photo picking, no sign-in, no activation screen yet.
+**The app today** has onboarding slides (English + Hindi), a consent screen (cloud AI off by default), Photo Picker import with counts, and an ObjectBox database (`ImageAsset`, `IndexJob`, `UserSettings`, `QueryCache`) with fingerprint de-duplication. Photos stay after a restart. There is no search, no indexing, no sign-in and no activation screen yet.
+
+**Lesson (0.1.3):** inside a NavHost, plain `viewModel()` skips Hilt and the app crashes on a no-argument constructor. Use `hiltViewModel()` or pass the Activity as `viewModelStoreOwner`.
 
 ## What exists in AWS
 
@@ -37,8 +39,8 @@ Local files (not in git): `~/.khojo-android/ota.keystore`, `ota_keystore_passwor
 
 ## Next steps, in order
 
-1. **Sprint 3** (delivery plan): app shell, onboarding, consent screen, Photo Picker, ObjectBox. One mini-sprint = one PR; every `android/**` PR needs a newer `## x.y.z` on top of `changelog.md` (top is `0.0.5`). Merging to `main` publishes the build to the phone automatically.
-2. **Sprint 4**: inference service, then **activation keys** (4B): Firebase anonymous auth + App Check, `khojo-licenses` DynamoDB table, `license` Lambda (`/v1/license/activate`, `/v1/license/status`), Activation screen, server-side license + quota check on every cloud call; the beta key goes away. Port from `X:\KIRA` (see below). Key admin web app in 7C, paid key sales in 8B.
+1. ~~Sprint 3~~ done. One mini-sprint = one PR; every `android/**` PR needs a newer `## x.y.z` on top of `changelog.md` (top is `0.1.3`). Merging to `main` publishes the build to the phone automatically.
+2. **Sprint 4** (next): inference service, then **activation keys** (4B): Firebase anonymous auth + App Check, `khojo-licenses` DynamoDB table, `license` Lambda (`/v1/license/activate`, `/v1/license/status`), Activation screen, server-side license + quota check on every cloud call; the beta key goes away. Port from `X:\KIRA` (see below). Key admin web app in 7C, paid key sales in 8B.
 3. Website download page (`GET /v1/releases/download` is described in the plan but not built; only `latest` exists).
 4. Small updater gaps: no manual "Check for updates" button (it only checks at app start), no Wi-Fi-only option.
 
