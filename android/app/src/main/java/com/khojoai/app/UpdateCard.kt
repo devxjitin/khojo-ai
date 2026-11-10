@@ -1,5 +1,7 @@
 package com.khojoai.app
 
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,7 +25,10 @@ import com.khojoai.app.update.UpdateViewModel
 /** Beta build only: shows "update available" with the notes, downloads the build and starts Android's installer. */
 @Composable
 fun UpdateCard(modifier: Modifier = Modifier) {
-    val vm: UpdateViewModel = viewModel()
+    // Inside a NavHost, plain viewModel() is tied to the screen and skips Hilt, so Android tries a no-argument
+    // constructor and the app closes. The Activity owner uses Hilt's factory.
+    val owner = LocalActivity.current as ComponentActivity
+    val vm: UpdateViewModel = viewModel(viewModelStoreOwner = owner)
     val state by vm.state.collectAsState()
     if (state is UpdateState.Idle) return
 
