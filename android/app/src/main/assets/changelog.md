@@ -3,6 +3,12 @@
 The first "## x.y.z" heading is the app version. The "###" sections and "-" bullets below it become the update notes shown on the phone.
 Phase = minor, mini-sprint = patch (e.g. Phase 1 Sprint 4 Mini-C = 0.1.5).
 
+## 0.1.2 - 2026-11-10
+
+### Changed
+- Photos you add are now kept in the app's own database, so they stay after a restart. The same photo added twice is counted once.
+- Photos and the consent answer from 0.1.1 are carried over automatically.
+
 ## 0.1.1 - 2026-11-10
 
 ### Added
