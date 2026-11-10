@@ -40,5 +40,7 @@ private fun HomeScreen() {
         Text(stringResource(R.string.tagline), style = MaterialTheme.typography.bodyLarge)
         // Shows which distribution this build is (aws-ota or google-play) and its version, handy when checking OTA updates.
         Text("v${BuildConfig.VERSION_NAME} - ${BuildConfig.UPDATE_CHANNEL}", style = MaterialTheme.typography.labelMedium)
+        // Beta (ota) build: update prompt. The Play build shows nothing here.
+        UpdateCard(Modifier.padding(top = 24.dp))
     }
 }
