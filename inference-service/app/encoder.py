@@ -25,6 +25,15 @@ def normalize(vector: np.ndarray) -> list[float]:
     return (vector / norm).astype(np.float32).tolist()
 
 
+def feature_vector(features, dimensions: int) -> list[float]:
+    """Newer transformers return an output object (the vector is its pooler_output); older ones return the tensor."""
+    tensor = features if hasattr(features, "detach") else features.pooler_output
+    vector = tensor.detach().cpu().numpy()[0]
+    if vector.shape[0] != dimensions:
+        raise RuntimeError(f"Model gave {vector.shape[0]} numbers, models.lock says {dimensions}.")
+    return normalize(vector)
+
+
 def open_image(data: bytes) -> Image.Image:
     """Raises ValueError for anything that is not a readable image."""
     try:
@@ -71,25 +80,19 @@ class SiglipEncoder:
         # One request at a time through the model: predictable memory on a small CPU instance.
         self._gate = threading.Lock()
 
-    def _finish(self, features) -> list[float]:
-        vector = features.detach().cpu().numpy()[0]
-        if vector.shape[0] != self._lock.dimensions:
-            raise RuntimeError(f"Model gave {vector.shape[0]} numbers, models.lock says {self._lock.dimensions}.")
-        return normalize(vector)
-
     def encode_text(self, text: str) -> list[float]:
         inputs = self._processor(
             text=[text.lower()], padding="max_length", max_length=self._lock.text_max_length,
             truncation=True, return_tensors="pt",
         )
         with self._gate, self._torch.inference_mode():
-            return self._finish(self._model.get_text_features(**inputs))
+            return feature_vector(self._model.get_text_features(**inputs), self._lock.dimensions)
 
     def encode_image(self, data: bytes) -> list[float]:
         image = open_image(data)
         inputs = self._processor(images=image, return_tensors="pt")
         with self._gate, self._torch.inference_mode():
-            return self._finish(self._model.get_image_features(**inputs))
+            return feature_vector(self._model.get_image_features(**inputs), self._lock.dimensions)
 
 
 def build_encoder(kind: str, lock: ModelLock) -> Encoder:

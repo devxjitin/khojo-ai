@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.config import load_lock
-from app.encoder import FakeEncoder, build_encoder
+from app.encoder import FakeEncoder, build_encoder, feature_vector
 from app.main import MAX_IMAGE_BYTES, create_app
 
 LOCK = load_lock()
@@ -85,3 +85,39 @@ def test_empty_and_oversized_images_are_refused(client):
 def test_unknown_encoder_name_fails_loudly():
     with pytest.raises(ValueError):
         build_encoder("nonsense", LOCK)
+
+
+class _Tensor:
+    """Stands in for a torch tensor: detach().cpu().numpy() gives a batch of one vector."""
+
+    def __init__(self, values):
+        self._values = values
+
+    def detach(self):
+        return self
+
+    def cpu(self):
+        return self
+
+    def numpy(self):
+        import numpy as np
+
+        return np.array([self._values], dtype=np.float32)
+
+
+class _Output:
+    def __init__(self, pooler_output):
+        self.pooler_output = pooler_output
+
+
+def test_feature_vector_accepts_a_tensor_and_the_newer_output_object():
+    values = [3.0, 4.0] + [0.0] * 766
+    from_tensor = feature_vector(_Tensor(values), 768)
+    from_output = feature_vector(_Output(_Tensor(values)), 768)
+    assert from_tensor == from_output
+    assert math.isclose(from_tensor[0], 0.6, abs_tol=1e-6) and math.isclose(from_tensor[1], 0.8, abs_tol=1e-6)
+
+
+def test_feature_vector_refuses_the_wrong_size():
+    with pytest.raises(RuntimeError):
+        feature_vector(_Tensor([1.0, 2.0]), 768)
