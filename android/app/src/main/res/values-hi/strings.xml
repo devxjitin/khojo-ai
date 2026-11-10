@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Khojo AI</string>
+    <string name="tagline">बस बोलो। खोजो।</string>
+    <string name="search_hint">क्या ढूँढना है?</string>
+
+    <string name="onboarding_skip">छोड़ें</string>
+    <string name="onboarding_next">आगे</string>
+    <string name="onboarding_start">शुरू करें</string>
+    <string name="onboarding_1_title">बताकर कोई भी फ़ोटो ढूँढें</string>
+    <string name="onboarding_1_body">फ़ोटो में क्या है, लिखकर या बोलकर बताइए, जैसे \"सुनहरी किनारी वाली लाल साड़ी\", और Khojo उसे ढूँढ देगा।</string>
+    <string name="onboarding_2_title">हिंदी, अंग्रेज़ी और हिंग्लिश में काम करता है</string>
+    <string name="onboarding_2_body">जैसे बोलते हैं वैसे ही खोजिए। फ़ाइल का नाम या तारीख़ याद रखने की ज़रूरत नहीं।</string>
+    <string name="onboarding_3_title">कंट्रोल आपके हाथ में</string>
+    <string name="onboarding_3_body">Khojo सिर्फ़ वही फ़ोटो पढ़ता है जो आप चुनते हैं। क्लाउड AI तब तक बंद रहता है जब तक आप इजाज़त न दें।</string>
+</resources>
