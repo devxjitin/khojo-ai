@@ -1,5 +1,5 @@
 <#
-Build and publish the OTA beta APK, or run the two stages separately in CI.
+Build and publish the OTA APK, or run the two stages separately in CI.
 Build produces ota-manifest.json next to the APK; Publish verifies its commit, hash, size and version.
 Requires SDK 36, JDK 17, AWS CLI authentication and the OTA signing key (~/.khojo-android/ota.keystore).
 The bucket comes from -Bucket or the KHOJO_OTA_BUCKET environment variable (Terraform output "ota_bucket").
@@ -22,8 +22,8 @@ $repo = Split-Path $PSScriptRoot -Parent
 $android = Join-Path $repo "android"
 $onWindows = $env:OS -eq "Windows_NT"
 if (-not $Bucket) { throw "Set -Bucket or KHOJO_OTA_BUCKET (the Terraform output ota_bucket)." }
-if (-not $OutputDirectory) { $OutputDirectory = Join-Path $android "app/build/outputs/apk/ota/release" }
-$apk = Join-Path $OutputDirectory "app-ota-release.apk"
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $android "app/build/outputs/apk/release" }
+$apk = Join-Path $OutputDirectory "app-release.apk"
 $manifest = Join-Path $OutputDirectory "ota-manifest.json"
 
 function Assert-FreshCheckout {
@@ -98,11 +98,11 @@ if ($Mode -ne "Publish") {
     Push-Location $android
     try {
         # lintVital repeats the lint the checks already ran.
-        & $gradlew assembleOtaRelease -x lintVitalOtaRelease "-PappVersionCode=$versionCode" "-PappVersionName=$VersionName" --build-cache --profile --console=plain
+        & $gradlew assembleRelease -x lintVitalRelease "-PappVersionCode=$versionCode" "-PappVersionName=$VersionName" --build-cache --profile --console=plain
         $built = $LASTEXITCODE
     } finally { Pop-Location }
     if ($built -ne 0) { throw "Build failed; nothing was published." }
-    $builtApk = Join-Path $android "app/build/outputs/apk/ota/release/app-ota-release.apk"
+    $builtApk = Join-Path $android "app/build/outputs/apk/release/app-release.apk"
     New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     if ([IO.Path]::GetFullPath($builtApk) -ne [IO.Path]::GetFullPath($apk)) { Copy-Item -LiteralPath $builtApk -Destination $apk }
     $info = [ordered]@{

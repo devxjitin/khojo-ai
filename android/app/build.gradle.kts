@@ -15,10 +15,10 @@ val localProperties = Properties().apply {
     if (file.exists()) load(file.inputStream())
 }
 val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "https://api.example.com")
-// Shared key the beta (ota) build sends to the update endpoint. Not a real secret (it is inside the APK); Cognito replaces it in Sprint 7.
+// Shared key the app sends to the update endpoint. Not a real secret (it is inside the APK); Firebase JWT + activation keys replace it in Sprint 4B.
 val betaKey: String = localProperties.getProperty("BETA_KEY", "")
 
-// versionCode = minutes since 1970, so every build is newer than the one before and `ota` / `play` flavors never collide.
+// versionCode = minutes since 1970, so every build is newer than the one before.
 // scripts/publish-update.ps1 passes the same number with -PappVersionCode.
 val appVersionCode: Int = (project.findProperty("appVersionCode") as String?)?.toIntOrNull()
     ?: (System.currentTimeMillis() / 60000).toInt()
@@ -29,19 +29,13 @@ val appVersionName: String = (project.findProperty("appVersionName") as String?)
     }
     ?: "0.0.1"
 
-// OTA signing key: ~/.khojo-android/ota.keystore locally, restored from a GitHub secret in CI. Losing or replacing
-// it means every tester must uninstall and reinstall, so back it up offline and never regenerate it.
+// Release signing key: ~/.khojo-android/ota.keystore locally, restored from a GitHub secret in CI. There is no Play App
+// Signing to fall back on, so losing or replacing it means every user must uninstall and reinstall. Back it up offline
+// in two places and never regenerate it.
 val otaKeystore = File(System.getProperty("user.home"), ".khojo-android/ota.keystore")
 val otaStorePassword: String = System.getenv("KHOJO_OTA_KEYSTORE_PASSWORD") ?: "android"
 val otaKeyAlias: String = System.getenv("KHOJO_OTA_KEY_ALIAS") ?: "androiddebugkey"
 val otaKeyPassword: String = System.getenv("KHOJO_OTA_KEY_PASSWORD") ?: otaStorePassword
-
-val releaseStoreFile = localProperties.getProperty("RELEASE_STORE_FILE", "")
-val releaseStorePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-val releaseKeyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "")
-val releaseKeyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
-val hasPlaySigning = releaseStoreFile.isNotBlank() && releaseStorePassword.isNotBlank() &&
-    releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
 
 android {
     namespace = "com.khojoai.app"
@@ -54,26 +48,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
-    }
-
-    // Two ways to distribute the same code:
-    //  ota  - self-updates from our AWS bucket (team + pilot sellers). Contains the APK installer; has its own app id
-    //         so it can live next to the Play build on one phone.
-    //  play - Google Play only: Play updates + Play Billing. Contains no installer code or permission.
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("ota") {
-            dimension = "distribution"
-            applicationIdSuffix = ".beta"
-            versionNameSuffix = "-beta"
-            buildConfigField("String", "UPDATE_CHANNEL", "\"aws-ota\"")
-            buildConfigField("String", "BETA_KEY", "\"$betaKey\"")
-        }
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("String", "UPDATE_CHANNEL", "\"google-play\"")
-            buildConfigField("String", "BETA_KEY", "\"\"")
-        }
+        buildConfigField("String", "BETA_KEY", "\"$betaKey\"")
     }
 
     signingConfigs {
@@ -85,14 +60,6 @@ android {
                 keyPassword = otaKeyPassword
             }
         }
-        if (hasPlaySigning) {
-            create("playUpload") {
-                storeFile = rootProject.file(releaseStoreFile)
-                storePassword = releaseStorePassword
-                keyAlias = releaseKeyAlias
-                keyPassword = releaseKeyPassword
-            }
-        }
     }
 
     buildTypes {
@@ -100,14 +67,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-    }
-
-    // Pick each flavor's signing key (variants without a configured key fall back to the debug key so CI can still build).
-    productFlavors.configureEach {
-        when (name) {
-            "ota" -> signingConfigs.findByName("ota")?.let { signingConfig = it }
-            "play" -> signingConfigs.findByName("playUpload")?.let { signingConfig = it }
+            // Without the key file (CI checks, fresh clone) the build falls back to the debug key.
+            signingConfigs.findByName("ota")?.let { signingConfig = it }
         }
     }
 
@@ -156,11 +117,11 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.58")
     kapt("com.google.dagger:hilt-android-compiler:2.58")
 
-    // Self-update (AWS beta build only; the Play build contains none of this).
-    "otaImplementation"("com.squareup.okhttp3:okhttp:4.12.0")
+    // Self-update from our AWS bucket.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
     // Real org.json: the Android one is only a stub in unit tests.
-    "testOtaImplementation"("org.json:json:20240303")
+    testImplementation("org.json:json:20240303")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

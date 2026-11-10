@@ -6,7 +6,7 @@ Search your own photos, screenshots, videos and audio by describing them (Englis
 
 | Folder | What |
 |---|---|
-| `android/` | Kotlin + Compose app. Self-updates from AWS. (Flavors `ota`/`play` still in code; being collapsed into one build) |
+| `android/` | Kotlin + Compose app, one build (`com.khojoai.app`) that updates itself from AWS |
 | `inference-service/` | FastAPI + SigLIP 2 (Sprint 4) |
 | `lambdas/` | `khojo-updates` OTA endpoint, `license` + `license-admin` activation keys (Sprint 4B/7C), control plane |
 | `infrastructure/` | Terraform (`bootstrap/` first, then `envs/`) |
@@ -22,8 +22,8 @@ Needs JDK 17 and Android SDK 36 (`ANDROID_HOME`).
 
 ```bash
 cd android
-./gradlew testOtaDebugUnitTest testPlayDebugUnitTest -PappVersionCode=1
-./gradlew assembleOtaDebug      # installable beta build
+./gradlew testDebugUnitTest -PappVersionCode=1
+./gradlew assembleDebug         # installable debug build
 ```
 
 CI logic tests: `python -m unittest discover -s tests/ci`
