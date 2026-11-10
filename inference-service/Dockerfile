@@ -9,6 +9,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /srv
 
+# AWS Lambda Web Adapter: lets this same image run on Lambda (ADR-004 option 1) or on a plain server. Outside Lambda
+# it does nothing, so docker run still works.
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 /lambda-adapter /opt/extensions/lambda-adapter
+
 COPY requirements.txt requirements-model.txt ./
 RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu \
     -r requirements.txt -r requirements-model.txt

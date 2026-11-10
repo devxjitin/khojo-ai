@@ -110,6 +110,28 @@ resource "aws_iam_role_policy_attachment" "backend_deploy_power_user" {
   policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
 
+# PowerUserAccess cannot touch IAM, but each Lambda needs its own execution role. Allow role management for names
+# starting with "khojo-" only (never users, never other roles in the account).
+data "aws_iam_policy_document" "backend_deploy_roles" {
+  statement {
+    sid = "ManageKhojoLambdaRoles"
+    actions = [
+      "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:UpdateRole", "iam:TagRole", "iam:UntagRole",
+      "iam:UpdateAssumeRolePolicy", "iam:PassRole",
+      "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListAttachedRolePolicies",
+      "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies",
+      "iam:ListInstanceProfilesForRole",
+    ]
+    resources = ["arn:aws:iam::${local.account_id}:role/khojo-*"]
+  }
+}
+
+resource "aws_iam_role_policy" "backend_deploy_roles" {
+  name   = "manage-khojo-roles"
+  role   = aws_iam_role.backend_deploy.id
+  policy = data.aws_iam_policy_document.backend_deploy_roles.json
+}
+
 # --- 3) terraform plan on pull requests: read-only, plus the state lock ---
 
 data "aws_iam_policy_document" "plan_trust" {
