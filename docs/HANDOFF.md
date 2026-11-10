@@ -1,7 +1,10 @@
 # Khojo AI - Handoff / current status
 
 **Written:** 10 Nov 2026, end of the first working session. **Read this first in the next session.**
-Plans: `docs/Khojo_AI_Final_Blueprint_v2.2.md` (what/why) and `docs/Khojo_AI_Delivery_Plan.md` (phases, 21 sprints, CI/CD design).
+Plans: `docs/Khojo_AI_Final_Blueprint_v2.2.md` (what/why, now v2.3) and `docs/Khojo_AI_Delivery_Plan.md` (phases, 21 sprints, CI/CD design, now v1.1).
+
+> **Big decision (10 Nov 2026, later the same day): no Play Store.** The app is installed from our website as an APK, updates through AWS OTA for everyone, and unlocks with an **activation key**, copied from `devxjitin/ultron-android` (`mcp/license`, `mcp/license-admin`, `ultronapp/`). See `docs/adr/ADR-002-no-play-store-activation-keys.md`. The `play` flavor, Play Billing, Play Console and `play-release.yml` are dropped; Cognito is replaced by Firebase anonymous auth (as in Ultron).
+
 Repo: https://github.com/devxjitin/khojo-ai (private, owner `devxjitin`). AWS account `143920986615`, region `ap-south-1`, IAM user `jitin-admin`.
 
 ## Where we are
@@ -36,12 +39,14 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
    - The saved `prod.tfplan` on the old machine state is stale; re-run `terraform plan`.
    - Init command: see `infrastructure/README.md` ("Prod environment").
    - Outputs needed afterwards: `api_url` and `ota_bucket`.
-2. **OTA signing key** (`keytool` command in `docs/CI_CD.md`). The user must back it up offline in 2 places; losing it forces every tester to reinstall. Do not regenerate it later.
+2. **OTA signing key** (`keytool` command in `docs/CI_CD.md`). The user must back it up offline in 2 places; losing it forces every user to reinstall (there is no Play App Signing to fall back on). Do not regenerate it later.
 3. **GitHub secrets** (ask the user first; do not put secrets in chat): `KHOJO_OTA_KEYSTORE` (base64), `KHOJO_OTA_KEYSTORE_PASSWORD`, `KHOJO_OTA_KEY_ALIAS`, `APP_CONFIG_PROPERTIES` (= `API_BASE_URL=<api_url>` and `BETA_KEY=<same key>`). **GitHub variable** `KHOJO_OTA_BUCKET=<ota_bucket output>`.
-4. **Merge in order:** #4, #1, #2, #3 (stacked PRs retarget to `main` on their own). Merging #1 triggers `Publish OTA`, which fails unless steps 1-3 are done.
-5. First OTA build -> install the APK **manually once** on a phone -> merge a tiny change (bump `changelog.md`) -> confirm the phone offers the update. This whole chain has never run end to end; expect small fixes.
-6. Branch protection on `main` (PR required, `Required checks`, no force-push). Not set; private repos on a Free plan may not allow it. Check.
-7. Then Sprint 3 (app shell, onboarding, Photo Picker, ObjectBox) per the delivery plan.
+4. **Merge in order:** #4, #5 (docs), #1, #2, #3 (stacked PRs retarget to `main` on their own). Merging #1 triggers `Publish OTA`, which fails unless steps 1-3 are done.
+   - PR #1's `docs/CI_CD.md` still says "Cognito sign-in replaces [the beta key] in Sprint 7". Change it to "Firebase JWT + activation key replace it in Sprint 4B" while merging.
+5. **Drop the `play` flavor before any phone install** (new small PR, ADR-002): one build, `applicationId = com.khojoai.app`, `REQUEST_INSTALL_PACKAGES` and the updater move from `src/ota` to `src/main`, delete the `playUpload` signing config, CI runs `testDebugUnitTest lintDebug`, `ci_changes.py`/`publish-update.ps1`/`publish-ota.yml` use `assembleRelease`. Must land before the first install, because changing the app id later forces every user to reinstall.
+6. First OTA build -> install the APK **manually once** on a phone -> merge a tiny change (bump `changelog.md`) -> confirm the phone offers the update. This whole chain has never run end to end; expect small fixes.
+7. Branch protection on `main` (PR required, `Required checks`, no force-push). Not set; private repos on a Free plan may not allow it. Check.
+8. Then Sprint 3 (app shell, onboarding, Photo Picker, ObjectBox) per the delivery plan. Activation keys come in Sprint 4B (Firebase anon auth + App Check, `khojo-licenses` table, `license` Lambda, Activation screen); the key admin web app in 7C; paid key sales in 8B.
 
 ## Needs the user (cannot be done by Claude)
 
@@ -50,18 +55,22 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
 - Note AWS credit balance, expiry date and which services it covers (Billing -> Credits).
 - Build the benchmark dataset: ~1,000 consented photos + 100+ labelled queries (`eval/README.md`), then run the benchmark on a GPU box and fill in ADR-003 (model choice) and create `eval/baseline.json`.
 - 10-15 seller interviews, trademark check for "Khojo AI", domain mapping for `api.<domain>` later.
+- Before Sprint 4B: a Firebase project for Khojo (Anonymous Auth + App Check with Play Integrity, device integrity only) and its `google-services.json`.
+- Before Sprint 7C: a Resend account with the domain verified (DKIM/SPF), API key stored as SSM SecureString `/khojo/resend-api-key`; admin Google email(s) for `ADMIN_EMAILS`.
+- Before public launch: register with Google's Android developer verification (package + signing key). Enforcement started 30 Sep 2026 in 4 countries, global in 2027; India's date is not announced yet.
 
 ## Decisions made and things to know
 
-- **Two Android flavors:** `ota` (id `com.khojoai.app.beta`, self-updates from AWS, has the installer permission) and `play` (id `com.khojoai.app`, Play-only). Verified in merged manifests that `play` has no installer permission.
-- **Beta key** protects the update endpoint for now. It is inside the APK, so it only keeps casual visitors out. Cognito sign-in replaces it in Sprint 7.
+- **Two Android flavors today** (`ota` = `com.khojoai.app.beta`, `play` = `com.khojoai.app`). **Being collapsed into one build** (`com.khojoai.app`, OTA updater in main), see next step 5 and ADR-002.
+- **Beta key** protects the update endpoint for now. It is inside the APK, so it only keeps casual visitors out. Firebase JWT + activation keys replace it in Sprint 4B.
+- **Activation keys** (ADR-002): `KHOJ-XXXX-XXXX-XXXX-XXXX`, only the SHA-256 is stored, one phone at a time, max 1 move a day, `durationDays` from first activation, 7 days offline grace. Unlike Ultron, every cloud call checks the license + plan quota on the server. Avoid the two bugs from Ultron's 10 Nov audit: reissue must keep the running expiry, and the dashboard must count a reissued sale once.
 - **Hilt is pinned to 2.58.** 2.57 cannot read Kotlin 2.3 metadata; 2.59/2.60 need AGP 9 (we are on AGP 8.13.2, Kotlin 2.3.21).
 - **`.gitattributes` forces LF**; `android/gradlew` must stay executable (`git update-index --chmod=+x`). Both bit us once.
 - **Version rule:** any PR that touches `android/**` (or the publish script) must add a newer `## x.y.z` on top of `android/app/src/main/assets/changelog.md`. Current top version on the PR branches: `0.0.3`.
 - **Terraform lock files** (`.terraform.lock.hcl`) are intentionally not committed (they were generated on Windows and would break Linux CI). `*.tfplan` files are gitignored (in PR #4).
 - Terraform is installed locally at `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Hashicorp.Terraform_Microsoft.Winget.Source_8wekyb3d8bbwe\terraform.exe` (v1.17.0); it may need a new shell to be on `PATH`.
 - Local Android builds need `ANDROID_HOME=C:\Users\devxj\AppData\Local\Android\Sdk` and JDK 17 (`C:\Program Files\Eclipse Adoptium\jdk-17.0.21.9-hotspot`).
-- The reference implementation for the OTA design is `devxjitin/ultron-android` (`.github/workflows/publish-ota.yml`, `scripts/publish-update.ps1`, `docs/CI_CD.md`).
+- The reference implementation is `devxjitin/ultron-android`, checked out locally at `X:\KIRA`: OTA (`.github/workflows/publish-ota.yml`, `scripts/publish-update.ps1`, `docs/CI_CD.md`) and activation keys (`mcp/license/lambda_function.py`, `mcp/license-admin/`, `ultronapp/`, `android/app/src/main/java/com/assistant/app/data/License.kt`, `network/LicenseClient.kt`, `viewmodel/AccessViewModel.kt`, `ui/AccessScreens.kt`, `infra/api.yaml`, `docs/ARCHITECTURE.md` sections 21-22).
 
 ## Not verified yet (do not claim these work)
 
