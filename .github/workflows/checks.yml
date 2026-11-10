@@ -106,7 +106,7 @@ jobs:
       - name: Lint and test inference service (skipped until the service exists)
         run: |
           if [ -f inference-service/requirements.txt ]; then
-            python -m pip install -r inference-service/requirements.txt ruff pytest
+            python -m pip install -r inference-service/requirements-dev.txt
             ruff check inference-service
             python -m pytest inference-service -q
           else

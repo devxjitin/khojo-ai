@@ -1,0 +1,5 @@
+# What the API itself needs. This is all CI installs, so the checks stay fast.
+fastapi>=0.115,<1
+uvicorn>=0.32,<1
+numpy>=1.26
+pillow>=10
