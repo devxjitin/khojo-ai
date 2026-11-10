@@ -4,6 +4,20 @@
     <string name="tagline">बस बोलो। खोजो।</string>
     <string name="search_hint">क्या ढूँढना है?</string>
 
+    <string name="home_add_photos">फ़ोटो जोड़ें</string>
+
+    <string name="consent_title">क्लाउड AI की इजाज़त दें?</string>
+    <string name="consent_body">आपकी फ़ोटो समझने के लिए Khojo एक छोटी, रीसाइज़ की हुई कॉपी हमारे सुरक्षित सर्वर को भेज सकता है। यह सिर्फ़ सर्च बनाने के काम आती है और 24 घंटे के अंदर मिटा दी जाती है। असली फ़ोटो आपके फ़ोन से बाहर नहीं जातीं।</string>
+    <string name="consent_note">आप इसे बाद में बदल सकते हैं। \"अभी नहीं\" चुनने पर क्लाउड AI बंद रहेगा।</string>
+    <string name="consent_allow">इजाज़त दें</string>
+    <string name="consent_deny">अभी नहीं</string>
+
+    <string name="import_title">फ़ोटो जोड़ें</string>
+    <string name="import_total">%1$d फ़ोटो जुड़ीं</string>
+    <string name="import_last">%1$d चुनीं: %2$d नई, %3$d पहले से जुड़ी हुई</string>
+    <string name="import_pick">फ़ोटो चुनें</string>
+    <string name="import_back">वापस</string>
+
     <string name="onboarding_skip">छोड़ें</string>
     <string name="onboarding_next">आगे</string>
     <string name="onboarding_start">शुरू करें</string>
