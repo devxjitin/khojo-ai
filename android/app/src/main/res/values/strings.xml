@@ -3,4 +3,14 @@
     <string name="app_name">Khojo AI</string>
     <string name="tagline">Bas bolo. Khojo.</string>
     <string name="search_hint">Kya dhoondhna hai?</string>
+
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_1_title">Find any photo by describing it</string>
+    <string name="onboarding_1_body">Type or say what is in the photo, like \"red saree with gold border\", and Khojo finds it.</string>
+    <string name="onboarding_2_title">Works in Hindi, English and Hinglish</string>
+    <string name="onboarding_2_body">Search the way you talk. No need to remember file names or dates.</string>
+    <string name="onboarding_3_title">You stay in control</string>
+    <string name="onboarding_3_body">Khojo only reads the photos you choose. Cloud AI stays off until you allow it.</string>
 </resources>
