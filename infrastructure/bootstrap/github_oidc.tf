@@ -9,7 +9,10 @@ data "aws_iam_openid_connect_provider" "github" {
 locals {
   oidc_arn = data.aws_iam_openid_connect_provider.github.arn
   oidc_sub = "token.actions.githubusercontent.com:sub"
-  oidc_aud = "token.actions.githubusercontent.com:aud"
+  # Repos created recently get an immutable subject claim ("repo:<owner>@<id>/<name>@<id>:..."), so the role trust must
+  # use that form. Look it up with: gh api repos/<owner>/<repo>/actions/oidc/customization/sub (sub_claim_prefix).
+  repo_subject = var.github_repo_subject != "" ? var.github_repo_subject : var.github_repo
+  oidc_aud     = "token.actions.githubusercontent.com:aud"
 }
 
 # --- 1) OTA publish: only the main branch may upload APKs and move latest.json ---
@@ -32,7 +35,7 @@ data "aws_iam_policy_document" "ota_trust" {
     condition {
       test     = "StringEquals"
       variable = local.oidc_sub
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = ["repo:${local.repo_subject}:ref:refs/heads/main"]
     }
   }
 }
@@ -89,8 +92,8 @@ data "aws_iam_policy_document" "deploy_trust" {
       test     = "StringEquals"
       variable = local.oidc_sub
       values = [
-        "repo:${var.github_repo}:environment:staging",
-        "repo:${var.github_repo}:environment:prod",
+        "repo:${local.repo_subject}:environment:staging",
+        "repo:${local.repo_subject}:environment:prod",
       ]
     }
   }
@@ -127,7 +130,7 @@ data "aws_iam_policy_document" "plan_trust" {
     condition {
       test     = "StringEquals"
       variable = local.oidc_sub
-      values   = ["repo:${var.github_repo}:pull_request"]
+      values   = ["repo:${local.repo_subject}:pull_request"]
     }
   }
 }
