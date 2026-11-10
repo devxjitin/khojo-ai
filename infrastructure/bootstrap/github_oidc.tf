@@ -1,12 +1,13 @@
 # GitHub Actions signs in to AWS with short-lived OIDC tokens: no long-lived AWS keys are stored in GitHub.
+# An account can hold only one GitHub OIDC provider and this account already has it (created for ultron-android),
+# so it is looked up here instead of created. If you ever use a fresh account, create it with aws_iam_openid_connect_provider.
 
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 locals {
-  oidc_arn = aws_iam_openid_connect_provider.github.arn
+  oidc_arn = data.aws_iam_openid_connect_provider.github.arn
   oidc_sub = "token.actions.githubusercontent.com:sub"
   oidc_aud = "token.actions.githubusercontent.com:aud"
 }
