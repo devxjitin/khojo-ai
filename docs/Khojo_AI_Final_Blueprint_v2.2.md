@@ -4,7 +4,7 @@
 > **Ek line mein:** Aapke phone ki photos, screenshots, videos aur audio mein se — sirf bol kar ya likh kar (English / Hindi / Hinglish) — sahi cheez dhoondho, aur turant use karo (share, copy, play-from-moment).
 > **Platform:** Android first (Kotlin + Jetpack Compose)
 > **Document:** PRD + Technical Architecture + Cost Model + Pricing + Roadmap — sab ek jagah
-> **Version:** 2.2 (Final planning blueprint + People & Faces + AWS credits/domain) · **Date:** 10 November 2026
+> **Version:** 2.3 (v2.2 + **no Play Store: website APK + AWS OTA + activation keys**, [ADR-002](adr/ADR-002-no-play-store-activation-keys.md)) · **Date:** 10 November 2026
 > **Status:** Planning complete → Build ready. *Abhi tak koi model benchmark, legal review ya market test nahi hua hai — jo numbers "estimate" likhe hain unhe Stage 0 mein verify karna hai.*
 
 ---
@@ -22,9 +22,10 @@
 | **People & Faces** 👤 | Photos ke chehre apne aap group → user naam de ("Ram") → "Ram ki kurte wali photo" search. **100% on-device, default OFF, cloud cost ₹0** |
 | **Photos kahan rahengi?** | **Phone pe hi.** Cloud sirf optional AI processing ke liye, consent ke baad, temporary |
 | **Backend** | AWS Mumbai — Lambda (pilot) → chhota always-on text server + GPU spot batch worker (growth) |
+| **Distribution** | **Play Store nahi.** Website se APK, updates AWS OTA se, app **activation key** (`KHOJ-XXXX-XXXX-XXXX-XXXX`) se unlock — `ultron-android` jaisa |
 | **Monthly cost** | Pilot (50 users): **~₹500–₹2,000** · Growth (1,000 users): **~₹5,000–₹11,000** · Scale (10,000 users): **~₹16,000–₹30,000** · ✅ **AWS credits se shuruaati mahino ka bill ≈ ₹0** |
-| **Plans** | Free ₹0 · Plus ₹79/mo · Seller Pro ₹199/mo · Media Pro ₹349/mo (baad mein) · Yearly ~25% discount |
-| **Break-even** | ~₹10,000 fixed cost cover karne ke liye ≈ **70 Seller Pro** ya **~176 Plus** paying users |
+| **Plans** | Free ₹0 · Plus ₹79/mo · Seller Pro ₹199/mo · Media Pro ₹349/mo (baad mein) · Yearly ~25% discount — **har plan ek activation key**, website / admin se |
+| **Break-even** | ~₹10,000 fixed cost cover karne ke liye ≈ **61 Seller Pro** ya **~153 Plus** paying users (Play fee nahi, sirf ~2% payment gateway) |
 | **Pehla release** | Photo + Screenshot search (Stage 1). Video/Audio baad mein jab core search users ko pasand aaye |
 
 ---
@@ -168,7 +169,7 @@ Legend: **P0** = MVP (Stage 1–2) · **P1** = next release · **P2** = later
 | F08 | Screenshot OCR search | P0 | Latin + Devanagari text searchable, ₹ amounts exact |
 | F09 | Filters + Sharing | P0 | Media type/date/source filter; Sharesheet kaam kare |
 | F10 | Indexing status, retry, cancel | P0 | Failed items ka reason; safe recovery |
-| F11 | Subscription + usage meter | P1 | Paid limits **server-side** enforce |
+| F11 | Activation key + plan + usage meter | P1 | Bina valid key app locked; paid limits **server-side** enforce |
 | F12 | Video visual search | P1 | Matching video + playable timestamp |
 | F13 | Audio speech search | P1 | Matching passage + timestamp |
 | F14 | Voice query (bol kar search) | P1 | Recognized text dikhe, edit ho sake |
@@ -241,7 +242,7 @@ Legend: **P0** = MVP (Stage 1–2) · **P1** = next release · **P2** = later
 | DI | **Hilt** | Android ke liye standard dependency injection | Koin |
 | Local DB + Vector search | **ObjectBox (HNSW index)** | Ek hi DB mein metadata + vector search, phone pe, fast, offline | SQLite + sqlite-vec, Room + brute-force |
 | Background work | **WorkManager** | App band ho / phone restart ho — indexing resume ho jaye | Foreground Service (sirf long video jobs) |
-| Media access | **Photo Picker + SAF** | Minimum permission → Play policy safe, user trust | READ_MEDIA_IMAGES (sirf zaroorat par) |
+| Media access | **Photo Picker + SAF** | Minimum permission → Play Protect / user trust | READ_MEDIA_IMAGES (sirf zaroorat par) |
 | OCR | **ML Kit Text Recognition v2** (Latin + Devanagari) | Free, on-device, offline, Hindi support | Tesseract (slow, kam accurate) |
 | Face detection | **ML Kit Face Detection** | Free, on-device, landmarks + head angle | YuNet (MIT) |
 | Face embedding | **AuraFace-v1 INT8** via ONNX Runtime Mobile | Apache 2.0 (commercial OK), 512-d, on-device | Paid MobileFaceNet SDK (lighter) |
@@ -249,7 +250,8 @@ Legend: **P0** = MVP (Stage 1–2) · **P1** = next release · **P2** = later
 | Thumbnails | **Coil** | Compose-friendly, lightweight | Glide |
 | Networking | **Retrofit + OkHttp** | Mature, retries, interceptors | Ktor client |
 | Async | **Coroutines + Flow** | Progress streams, cancellation | RxJava |
-| Billing | **Google Play Billing Library** | Play Store par digital subscription ke liye zaroori | — |
+| Unlock / plans | **Activation key** (Ultron jaisa) + license API | Play Store nahi, isliye app mein billing library nahi; kharidari app ke bahar | — |
+| App updates | **In-app OTA updater** (S3 + presigned URL + SHA-256 verify) | Sideloaded app ke liye ek hi update raasta | — |
 | Voice input | **Android SpeechRecognizer** (P1) | Free, Hindi support, zero cost | Whisper on-device (P2) |
 | Crash/Analytics | **Firebase Crashlytics** + opt-in aggregate analytics | Free, raw media kabhi nahi bhejte | Sentry |
 | On-device ML (P2) | **ONNX Runtime Mobile / LiteRT** | SigLIP 2 Base INT8 phone pe chalane ke liye | — |
@@ -262,8 +264,8 @@ Legend: **P0** = MVP (Stage 1–2) · **P1** = next release · **P2** = later
 | API framework | **FastAPI** | Fast, async, auto OpenAPI docs |
 | Model optimization | **ONNX Runtime / INT8 quantization** (benchmark ke baad) | CPU par 2–4x tez ho sakta hai; ranking change check karna zaroori |
 | Region | **AWS Mumbai (ap-south-1)** | Indian users ke liye low latency, INR billing |
-| Auth | **Amazon Cognito** (ya Firebase Auth) + Google Sign-In | Managed login, chhote scale par free tier |
-| Entitlement DB | **DynamoDB (on-demand)** | Sirf plan/quota store — bahut sasta |
+| Auth | **Firebase Anonymous Auth + App Check** (Ultron jaisa) | Login screen nahi; har phone ka uid, key isi uid se bandhti hai; free |
+| License + quota DB | **DynamoDB (on-demand)** `khojo-licenses` (key ka sirf SHA-256) + usage meters | Bahut sasta |
 | Temporary uploads | **S3 (private, encrypted, 1-day lifecycle)** | Badi files ke liye presigned upload; auto-delete |
 | Queue | **SQS** | Image/video indexing jobs async; spikes absorb |
 | Compute (pilot) | **Lambda container (ECR)** | Pay-per-use, idle cost ≈ 0 |
@@ -319,11 +321,11 @@ flowchart LR
   subgraph PHONE[📱 User ka Phone - source of truth]
     F[Original photos / videos / audio]
     DB[(ObjectBox: vectors, OCR, metadata, jobs)]
-    S[Settings + consent + cached entitlement]
+    S[Settings + consent + cached license status]
   end
   subgraph AWS[☁️ AWS Mumbai - optional, temporary]
-    A[Auth: Cognito]
-    E[(DynamoDB: plan + quota)]
+    A[Auth: Firebase anon JWT + activation key]
+    E[(DynamoDB: licenses + quota)]
     T[S3 temp uploads - auto delete 24h]
     M[Model servers - stateless]
   end
@@ -341,7 +343,7 @@ flowchart LR
 | Vectors / HNSW index | ✅ ObjectBox | ❌ Central vector DB nahi (MVP) |
 | OCR text | ✅ Local | ❌ |
 | Model weights | P2 mein Base INT8 | ✅ Hosted |
-| Account / subscription | Cached signed entitlement | ✅ Source of truth |
+| Activation key / plan | Key + aakhri status (7 din offline) | ✅ Source of truth (sirf key ka hash) |
 | Face vectors + Person names | ✅ **Sirf phone** | ❌ **Kabhi nahi** |
 
 > ⚠️ **Single-device limitation:** vectors aur URIs doosre phone par automatically sync nahi honge. Reinstall par reindex lag sakta hai (P2 backup feature tak).
@@ -405,16 +407,18 @@ sequenceDiagram
 ```mermaid
 flowchart TB
   APP[Android App] -->|HTTPS + JWT| GW[API Gateway HTTP API]
-  GW --> AUTH[Cognito JWT authorizer]
-  GW --> CTRL[Control Lambda: presign, jobs, entitlement]
-  CTRL --> DDB[(DynamoDB: users, plans, usage meters, jobs)]
+  GW --> AUTH[Firebase JWT authorizer]
+  GW --> LIC[License Lambda: activate, status]
+  GW --> CTRL[Control Lambda: presign, jobs, license + quota check]
+  LIC --> DDB
+  CTRL --> DDB[(DynamoDB: licenses, usage meters, jobs)]
   CTRL --> S3[(S3 temp bucket: SSE, 1-day lifecycle)]
   CTRL --> SQS[[SQS: image / video / audio queues]]
   GW --> TXT[Text Encoder: 1 small always-on instance, ECS/EC2]
   SQS --> BATCH[GPU Spot worker g4dn.xlarge: scale 0 to N]
   BATCH --> S3
   BATCH --> DDB
-  PLAY[Google Play RTDN] --> PUBSUB[Pub/Sub push] --> CTRL
+  PAY[Website payment webhook] --> ADM[License-admin Lambda: key create + Resend email] --> DDB
   CW[CloudWatch + Budgets + Anomaly Detection] -.-> GW
   CW -.-> BATCH
 ```
@@ -437,25 +441,26 @@ flowchart LR
   CL --> SND[(AudioSoundChunk table)]
 ```
 
-### 6.7 Subscription / entitlement flow
+### 6.7 Activation key / plan flow (Play Billing ki jagah)
 
 ```mermaid
 sequenceDiagram
-  participant App
-  participant Play as Google Play Billing
+  participant B as Buyer
+  participant W as Website / Admin app
   participant API as Khojo Backend
-  participant G as Google Play Developer API
-  App->>Play: Launch purchase (Seller Pro)
-  Play-->>App: purchaseToken
-  App->>API: POST /v1/billing/verify {purchaseToken}
-  API->>G: Validate token
-  G-->>API: Active, expiry
-  API->>API: Save entitlement + quotas (DynamoDB)
-  API-->>App: Signed entitlement (JWT, short expiry)
-  Note over App,API: Har cloud call par server quota check karta hai — client flag par bharosa nahi
-  G-->>API: RTDN: renew / cancel / hold / refund
-  API->>API: Entitlement update
+  participant App
+  B->>W: Plan kharido (payment link / UPI) ya admin manually
+  W->>API: Key create {plan, durationDays, name, email, phone, amount}
+  API->>API: DynamoDB mein sirf sha256(key)
+  API-->>B: Key email (Resend)
+  B->>App: Key daalo (Activation screen)
+  App->>API: POST /v1/license/activate {key} (Firebase JWT)
+  API-->>App: {active, plan, expiresAt, reason}
+  Note over App,API: Har cloud call par server khud license + quota check karta hai — client flag par bharosa nahi
+  App->>API: POST /v1/license/status (app start + har 6 ghante, 7 din offline grace)
 ```
+
+Detail aur Ultron se farq: [ADR-002](adr/ADR-002-no-play-store-activation-keys.md).
 
 ---
 
@@ -914,7 +919,7 @@ sequenceDiagram
 5. Naam sirf user deta hai — app khud kabhi kisi ka naam guess nahi karta.
 6. Chhote/background faces skip (bystander protection); "Hide person" option.
 7. Face data export/share feature **nahi** (ek user ka face DB doosre ko nahi).
-8. Play Console **Data safety** form aur privacy policy mein face processing clearly disclose (on-device, not collected/shared).
+8. Privacy policy (website) aur app ke consent screen mein face processing clearly disclose (on-device, not collected/shared).
 9. **DPDP Act (India)** ke hisaab se lawyer review — photos mein doosre logon ka data bhi hota hai. Kuch regions (jaise US ke Illinois/Texas jahan biometric laws hain) mein launch karna ho to feature region-wise band rakhne ka option.
 
 ### 10A.8 Performance aur cost
@@ -926,7 +931,7 @@ sequenceDiagram
 | 5,000 photos ka pehla scan | ~15–45 min background (charging + idle par) |
 | Person filter search | < 100 ms (local) |
 | Cloud cost | **₹0** |
-| App size increase | ~60–70 MB (AuraFace INT8) — **on-demand download** karo (Play Feature Delivery), sabke APK mein nahi |
+| App size increase | ~60–70 MB (AuraFace INT8) — **on-demand download** karo (S3 se, checksum verify), sabke APK mein nahi |
 
 ### 10A.9 Edge cases
 
@@ -965,8 +970,12 @@ Base URL: `https://api.<aapka-domain>/v1` (aapke existing domain ka subdomain) �
 | POST | `/v1/embeddings/image-jobs` | Batch image embedding job |
 | GET | `/v1/jobs/{jobId}` | Job status + results |
 | POST | `/v1/transcribe-jobs` | Audio/video ASR job (P1) |
-| GET | `/v1/me/entitlement` | Plan, expiry, quotas, usage |
-| POST | `/v1/billing/verify` | Play purchase token verify |
+| POST | `/v1/license/activate` | Key is phone par bandho (move bhi), status lautao |
+| POST | `/v1/license/status` | Key ka status (move nahi karta) |
+| GET | `/v1/me/usage` | Plan quotas + usage |
+| GET | `/v1/releases/latest` | OTA update info + 30-min presigned APK link |
+| GET | `/v1/releases/download` | Public (website button), throttled |
+| GET/POST/PATCH | `/v1/admin/licenses*` | Admin only (`ADMIN_EMAILS`): keys create / edit / revoke / reissue / allow-move |
 | DELETE | `/v1/me/data` | Saare server-side job artifacts delete |
 | DELETE | `/v1/me` | Account deletion |
 
@@ -998,7 +1007,7 @@ Base URL: `https://api.<aapka-domain>/v1` (aapke existing domain ka subdomain) �
 Codes: `UNAUTHORIZED`, `QUOTA_EXCEEDED`, `RATE_LIMITED`, `INVALID_MEDIA`, `MODEL_UNAVAILABLE`, `JOB_NOT_FOUND`.
 
 **API protections:**
-- Identity + entitlement server pe verify; client ke "isPro" flag par kabhi bharosa nahi.
+- Identity + activation key server pe verify; client ke "isPro" flag par kabhi bharosa nahi.
 - Rate limit: per user/device, batch size, daily compute.
 - Image decode limits (size, dimension, decompression bomb), MIME check.
 - EXIF/GPS strip **upload se pehle** (phone pe).
@@ -1019,7 +1028,7 @@ KhojoAI/
 │       ├── ui/
 │       │   ├── onboarding/   ├── home/        ├── importmedia/
 │       │   ├── search/       ├── results/     ├── player/
-│       │   ├── collections/  ├── subscription/└── settings/
+│       │   ├── collections/  ├── activation/  └── settings/
 │       ├── data/
 │       │   ├── local/objectbox/     # entities, DAOs, migrations
 │       │   ├── remote/api/          # Retrofit services, DTOs
@@ -1036,7 +1045,8 @@ KhojoAI/
 │       │   ├── VectorSearcher.kt
 │       │   └── ResultRanker.kt      # RRF
 │       ├── faces/                   # FaceDetector, FaceEmbedder, FaceClusterer, PersonQueryParser
-│       └── billing/
+│       ├── license/                 # LicenseKey, LicenseClient, AccessViewModel (Ultron jaisa)
+│       └── update/                  # AppUpdater, SHA-256 verify, UpdatedReceiver
 ├── inference-service/      # FastAPI + model workers (Python)
 │   ├── app/main.py  ├── app/models/siglip.py  ├── app/workers/
 │   └── Dockerfile
@@ -1046,7 +1056,7 @@ KhojoAI/
 └── README.md
 ```
 
-Library versions implementation ke time pin karna. Android media permissions OS version ke hisaab se badalte hain — latest Play policy follow karo.
+Library versions implementation ke time pin karna. Android media permissions OS version ke hisaab se badalte hain — Photo Picker use karo taaki broad media permission na maangni pade.
 
 ---
 
@@ -1056,7 +1066,7 @@ Library versions implementation ke time pin karna. Android media permissions OS 
 
 | Stage | Users | Compute design | Kyu |
 |---|---|---|---|
-| **Pilot** | ≤ 50 | Lambda container (ECR) for text + image; S3 temp; Cognito; DynamoDB | Idle cost ≈ 0; Free tier/credits use |
+| **Pilot** | ≤ 50 | Lambda container (ECR) for text + image; S3 temp; Firebase Auth; DynamoDB | Idle cost ≈ 0; Free tier/credits use |
 | **Growth** | ~1,000 | **Text encoder:** 1 small always-on instance (warm model, <1s search) · **Image indexing:** SQS + GPU Spot worker jo jobs hone par hi chale | Lambda cold start (GBs ka model load) search ko slow karega; GPU batch bahut sasta per image |
 | **Scale** | ~10,000+ | Text: 2 instances behind autoscaling · Indexing: GPU Spot pool (0→N) + on-demand fallback · Savings Plan | HA + cost per user kam |
 | **Optimized** | any | **On-device Base INT8 image encoder** → cloud indexing cost ~0 | Privacy + margin dono badhte hain |
@@ -1120,7 +1130,7 @@ Aapke paas **AWS credits** aur **domain** dono pehle se hain, isliye shuruaati k
 
 | Item | Approx cost | Note |
 |---|---:|---|
-| Google Play Developer account | $25 (~₹2,400) | Ek baar |
+| Android developer verification (Android Developer Console) | Google ki fee verify karo | Sideload APK ke liye 2027 se global (India date abhi announce nahi); Play Store listing ki zaroorat nahi |
 | Trademark filing "Khojo AI" (Class 9 + 42) | ~₹9,000 (₹4,500/class, individual/startup/MSME e-filing) | Attorney optional: +₹5,000–₹15,000 |
 | Domain | ✅ ₹0 (already hai) | Sirf yearly renewal |
 | Privacy policy + terms legal review | ₹10,000–₹50,000 | DPDP compliance ke liye recommended |
@@ -1139,7 +1149,7 @@ Workload: 1,000 images total (ek baar index) + 1,000 searches/month.
 | API Gateway (≈2,000 calls) | ~₹0–₹10 |
 | S3 temp uploads | ~₹0–₹20 |
 | CloudWatch logs/metrics | ₹0–₹200 |
-| Cognito + DynamoDB | ~₹0 (free tier — verify) |
+| Firebase Auth (anon) + DynamoDB | ~₹0 (free tier — verify) |
 | Email (domain already hai) | ~₹0–₹200 |
 | **Total** | **~₹500–₹2,000 → AWS credits se ≈ ₹0** |
 
@@ -1164,7 +1174,7 @@ Workload assumption: 200,000 naye images/month index + 100,000 searches/month.
 | S3 temp + data transfer | ₹200–₹500 |
 | API Gateway + Lambda control plane | ₹50–₹300 |
 | CloudWatch | ₹300–₹800 |
-| DynamoDB + Cognito | ₹100–₹300 |
+| DynamoDB + Firebase Auth | ₹100–₹300 |
 | ECR, domain, email, misc | ₹300–₹500 |
 | **Total** | **~₹5,000–₹11,000** |
 
@@ -1178,7 +1188,7 @@ Workload: 2,000,000 naye images/month + 1,000,000 searches/month.
 | GPU indexing (100–200 hrs; Spot use karke ₹2,000–₹4,000) | ₹2,000–₹11,000 |
 | S3 + transfer | ₹1,000–₹2,000 |
 | CloudWatch | ₹1,000–₹2,000 |
-| DynamoDB + Cognito (free tier ke upar ho sakta hai) | ₹500–₹3,000 |
+| DynamoDB + Firebase Auth (free tier ke upar ho sakta hai) | ₹500–₹3,000 |
 | **Total** | **~₹16,000–₹30,000** |
 
 ### 14.5 Per-unit cost (pricing decide karne ke liye)
@@ -1228,7 +1238,8 @@ Workload: 2,000,000 naye images/month + 1,000,000 searches/month.
 | 👤 People & Faces (on-device) | ✅ Grouping + 3 named people | ✅ Unlimited | ✅ Unlimited | ✅ Unlimited |
 | Devices | 1 | 1 | 2 (sync ke baad) | 2 |
 
-**Free trial:** Seller Pro ka **7-day free trial** (Play Billing ka built-in trial).
+**Free trial:** Seller Pro ka **7-day `trial` key** (ek email / ek phone ek baar).
+**Free plan:** ₹0 `free` key (lifetime, Free limits) — website par email se. App bina key ke locked rehti hai, isliye free users ko bhi key chahiye.
 
 ### 15.2 Ye prices kyu?
 
@@ -1244,10 +1255,11 @@ Workload: 2,000,000 naye images/month + 1,000,000 searches/month.
 - Measure: conversion, D7/D30 retention, churn, refunds.
 
 ### 15.4 Purchase architecture
-- **Google Play Billing** (Android digital subscriptions ke liye required).
-- Server-side purchase token validation + **RTDN** (Real-time Developer Notifications).
-- Grace period, account hold, cancel, upgrade/downgrade, restore — sab handle.
-- Limits, renewal terms aur cancel path screen par clearly.
+- **Play Store nahi, isliye Play Billing nahi.** App ke andar koi payment nahi; app sirf activation key leti hai.
+- Pilot: admin web app se key banao, buyer ko email (Resend). Payment UPI / bank transfer, manually record (`amount` key par save).
+- Public: website par plans page + payment link (Razorpay/UPI) → payment webhook → key auto-create + email.
+- Renew = naya key ya admin expiry extend. Lost phone = "allow move". Lost key = reissue (bachi hui expiry ke saath).
+- Refund/GST invoice ab hamari zimmedari. Plan limits, validity aur refund policy website + app dono par clearly.
 
 ---
 
@@ -1255,34 +1267,34 @@ Workload: 2,000,000 naye images/month + 1,000,000 searches/month.
 
 ### 16.1 Ek paying user se kitna milega?
 
-Assumption: price **GST inclusive** (18%) + Google Play subscription fee **15%** (India, auto-renew subscriptions — current schedule verify karo; US/UK/EEA mein June 2026 se 10% service + 5% billing split shuru hua hai, India mein aage badal sakta hai).
+Assumption: price **GST inclusive** (18%) + payment gateway fee **~2% + 18% GST on fee (≈2.36%)** (Razorpay standard UPI/cards — current rate verify karo). Play Store nahi, isliye 15% Play fee nahi.
 
-| Plan | Price | GST hatake | Play fee 15% ke baad (**net**) |
+| Plan | Price | GST hatake | Gateway ~2.36% ke baad (**net**) |
 |---|---:|---:|---:|
-| Plus (monthly) | ₹79 | ₹66.9 | **₹56.9** |
-| Plus (₹99 test) | ₹99 | ₹83.9 | ₹71.3 |
-| Seller Pro (₹149 test) | ₹149 | ₹126.3 | ₹107.3 |
-| Seller Pro | ₹199 | ₹168.6 | **₹143.3** |
-| Media Pro | ₹349 | ₹295.8 | **₹251.4** |
-| Plus yearly | ₹699 | ₹592.4 | ₹503.5 (~₹42/mo) |
-| Seller Pro yearly | ₹1,799 | ₹1,524.6 | ₹1,295.9 (~₹108/mo) |
+| Plus (monthly) | ₹79 | ₹66.9 | **₹65.4** |
+| Plus (₹99 test) | ₹99 | ₹83.9 | ₹81.9 |
+| Seller Pro (₹149 test) | ₹149 | ₹126.3 | ₹123.3 |
+| Seller Pro | ₹199 | ₹168.6 | **₹164.7** |
+| Media Pro | ₹349 | ₹295.8 | **₹288.8** |
+| Plus yearly | ₹699 | ₹592.4 | ₹578.4 (~₹48/mo) |
+| Seller Pro yearly | ₹1,799 | ₹1,524.6 | ₹1,488.6 (~₹124/mo) |
 
 *(GST aur payout treatment apne CA se confirm karna — ye legal/tax advice nahi hai.)*
 
 ### 16.2 Break-even
 
 Fixed monthly cost ₹10,000 (infra + tools) cover karne ke liye:
-- Sirf Seller Pro: 10,000 ÷ 143.3 ≈ **70 paying sellers**
-- Sirf Plus: 10,000 ÷ 56.9 ≈ **176 paying users**
+- Sirf Seller Pro: 10,000 ÷ 164.7 ≈ **61 paying sellers**
+- Sirf Plus: 10,000 ÷ 65.4 ≈ **153 paying users**
 
 ### 16.3 Scenarios
 
 | Scenario | Active users | Conversion | Paying mix | Net revenue/mo | Infra cost/mo | Result |
 |---|---:|---:|---|---:|---:|---|
 | Pilot | 50 | 0% (free pilot) | — | ₹0 | ₹500–₹2,000 | Investment phase |
-| Growth (optimistic) | 1,000 | 8% | 55 Plus + 25 Seller | ~₹6,700 | ₹5,000–₹11,000 | ~Break-even |
-| Scale (conservative) | 10,000 | 3% | 200 Plus + 100 Seller | ~₹25,700 | ₹16,000–₹30,000 | ~Break-even |
-| Scale (optimistic) | 10,000 | 8% | 550 Plus + 250 Seller | ~₹67,100 | ₹16,000–₹30,000 | **Gross margin ~55–76%** |
+| Growth (optimistic) | 1,000 | 8% | 55 Plus + 25 Seller | ~₹7,700 | ₹5,000–₹11,000 | ~Break-even |
+| Scale (conservative) | 10,000 | 3% | 200 Plus + 100 Seller | ~₹29,500 | ₹16,000–₹30,000 | ~Break-even |
+| Scale (optimistic) | 10,000 | 8% | 550 Plus + 250 Seller | ~₹77,100 | ₹16,000–₹30,000 | **Gross margin ~61–79%** |
 
 **Seekh:** business tab chalega jab (1) **sellers ka share zyada** ho, aur (2) image indexing **on-device** shift ho. Isliye roadmap mein dono priority par hain.
 
@@ -1309,9 +1321,9 @@ Fixed monthly cost ₹10,000 (infra + tools) cover karne ke liye:
 5. Analytics mein filenames, GPS, faces, transcripts, images **nahi**.
 6. Logs mein tokens, URIs, EXIF, payloads, transcripts redact.
 7. "Clear local index", "Delete server data", "Delete account" — teeno in-app.
-8. Signed entitlements; replay/spam/runaway bill protection.
+8. Activation key ka sirf hash server par; device binding (1 move/day); har cloud call par server-side license + quota; replay/spam/runaway bill protection.
 9. Saare dependencies + AI model licenses ka commercial-use audit.
-10. **DPDP Act (India)** + rules, Play **Data safety** form, privacy policy, retention, consent flows — lawyer se review. *(Ye document legal advice nahi hai.)*
+10. **DPDP Act (India)** + rules, privacy policy (website par), retention, consent flows — lawyer se review. *(Ye document legal advice nahi hai.)*
 11. **Face data:** sirf on-device, default OFF, alag consent, OFF karte hi delete, kabhi upload/analytics nahi — poore rules Section 10A.7.
 
 ### 17.3 Sensitive media
@@ -1443,20 +1455,20 @@ gantt
 - [ ] Results grid, detail, share/copy, multi-select
 - [ ] Failure handling, log redaction, privacy settings
 - [ ] Opt-in aggregate telemetry (raw media kabhi nahi)
-- [ ] Internal testing track (Play Console)
+- [ ] OTA beta channel (team + pilot keys)
 
 **Exit:** Bina caption wali photos import karke users useful results paa rahe hain.
 
 ### Stage 2 — Seller-focused paid pilot (~4–6 hafte)
 - [ ] Collections + batch share + catalogue mode
-- [ ] Auth (Cognito/Google Sign-In), entitlements, Play Billing, RTDN
-- [ ] Plans, limits, usage meters, paywall screen
+- [ ] Firebase anon auth + activation keys + key admin web app + key emails
+- [ ] Plans, limits, usage meters, key sales (payment link → key)
 - [ ] Growth infra: always-on text server + SQS + GPU Spot worker
 - [ ] 30–50 seller pilot + weekly feedback calls
 - [ ] Clothing/color/pattern + Hinglish relevance tuning
 - [ ] Price experiments (₹79 vs ₹99, ₹149 vs ₹199)
 
-**Exit:** Weekly repeat use + willingness-to-pay ka credible saboot → **public launch (Play Store production)**.
+**Exit:** Weekly repeat use + willingness-to-pay ka credible saboot → **public launch (website download + paid keys)**.
 
 ### Stage 2B — People & Faces 👤 (~3–4 hafte)
 - [ ] AuraFace INT8 conversion + phone benchmark (speed, RAM, accuracy vs FP32)
@@ -1466,9 +1478,9 @@ gantt
 - [ ] Bulk clustering + incremental assignment + thresholds tuning
 - [ ] People grid, naming, merge, suggestions, hide
 - [ ] PersonQueryParser ("Ram ki kurta photo") + filtered search
-- [ ] Consent screen, OFF = delete, Data safety update
+- [ ] Consent screen, OFF = delete, privacy policy update
 - [ ] Fairness + purity tests on Indian family photo set
-- [ ] Model as on-demand download (Play Feature Delivery)
+- [ ] Model as on-demand download (S3 + checksum)
 
 ### Stage 3 — Video moments (~4–6 hafte)
 - [ ] Video import + scene/keyframe extraction
@@ -1514,7 +1526,7 @@ gantt
 | ML experiments | Jupyter / Colab + experiment log CSV |
 | Infra | Terraform + AWS Console (read-only debugging) |
 | Monitoring | CloudWatch, Firebase Crashlytics |
-| Beta | Play Console internal/closed testing |
+| Beta + release | AWS OTA (S3 + `khojo-updates`), key admin web app |
 
 ### 21.3 Repo deliverables (Stage 0 ke end tak)
 - `README.md` — setup, architecture overview
@@ -1540,10 +1552,11 @@ gantt
 | Model version mismatch | Search corrupt | Version fields, dimension enforcement, full reindex |
 | AWS bill shock | Paisa doob | Budgets, quotas, kill switch, Spot, cache, no unlimited media |
 | URI revoked | File gayab | Stale detect + re-select prompt |
-| Subscription abuse | Revenue leak | Server verification, rate limits, device limits |
+| Key sharing / abuse | Revenue leak | Ek key ek phone, 1 move/day, server-side quota, revoke/reissue |
+| Sideload friction / Play Protect warning / Android developer verification | Kam installs, install block | Ek signing key hamesha, developer verification registration, website install guide |
 | Kam paid conversion | Business fail | Interviews + pilot pehle, marketing baad mein |
 | Fake confidence UI | Distrust | Ranking dikhao, fake % nahi |
-| Play policy change (permissions/billing) | Launch delay | Photo Picker use, policy review har release se pehle |
+| Payment/refund/GST khud handle karna | Ops load, legal | Pehle manual keys, phir gateway webhook; CA se GST setup |
 | Brand/trademark conflict | Rename cost | Stage 0 mein search + filing |
 | Face model license galat (non-commercial weights) | Legal notice / app removal | Sirf AuraFace (Apache 2.0) ya paid license; har model ka license file repo mein |
 | Face data privacy / biometric laws | Trust + legal risk | 100% on-device, default OFF, delete on OFF, region-wise disable option, lawyer review |
@@ -1555,7 +1568,8 @@ gantt
 ## 23. Launch checklist aur KPIs
 
 ### 23.1 Engineering
-- [ ] Signed production build; crash/ANR monitoring
+- [ ] Signed production build (OTA key, offline backup 2 jagah); crash/ANR monitoring
+- [ ] License: activate/status/move/expiry/offline grace tested; admin revoke/reissue tested
 - [ ] Model files pinned + checksums; license notices app mein
 - [ ] Import → embedding → ObjectBox → search pipeline fully tested
 - [ ] DB migration + index rebuild tested
@@ -1566,9 +1580,11 @@ gantt
 
 ### 23.2 Policy & trust
 - [ ] Privacy policy + terms (saare processing modes)
-- [ ] Permission flows current Play policy ke against audit
-- [ ] Play Data safety form + account deletion flow
-- [ ] Subscription terms, renew/cancel/restore tested
+- [ ] Permission flows minimum (Photo Picker, install permission sirf updates ke liye)
+- [ ] Account/data deletion flow + website par refund policy
+- [ ] Key terms (validity, renew, move, refund) website + app par
+- [ ] Android developer verification: package `com.khojoai.app` + signing key registered
+- [ ] Download page + install guide live, APK SHA-256 published
 - [ ] Trademark final (domain ✅ already hai; DNS, HTTPS certificate, privacy policy URL live)
 
 ### 23.3 KPIs
@@ -1604,7 +1620,7 @@ v1 ke 12 open questions — meri recommended default decisions (Stage 0 data se 
 | 7 | Hinglish method? | **Dictionary normalizer + dual embedding (original + rewrite) + RRF.** LLM rewrite sirf proven gain par |
 | 8 | Latency targets? | Text search **p95 < 1.5s (4G)**; indexing **≥ 300 images/min** batch (validate) |
 | 9 | Video/audio limits? | **Media Pro: 5 hrs video + 20 hrs audio / month** |
-| 10 | Subscription expire hone par? | Phone ka local index **delete nahi**; cloud features Free limits par; server data already temporary; account deletion request par 30 din mein |
+| 10 | Key expire hone par? | Phone ka local index **delete nahi**; app "renew karo" dikhati hai, cloud calls band; server data already temporary; account deletion request par 30 din mein |
 | 11 | Domain/trademark? | **Domain already hai ✅** — `api.`, `www.` subdomains use karo; privacy policy bhi isi domain par. Trademark Class **9 + 42** filing Stage 0 mein |
 | 12 | Backup/sync? | Sirf **end-to-end encrypted** design + alag pricing ke saath, Stage 5+ |
 | 13 | Face grouping kahan aur kaise? | **100% on-device, default OFF, Free plan mein bhi (3 named people), Plus+ unlimited.** Model: AuraFace-v1 INT8 (benchmark ke baad) |
@@ -1676,7 +1692,8 @@ v1 ke 12 open questions — meri recommended default decisions (Stage 0 data se 
 - AWS Pricing Calculator: https://calculator.aws/
 
 **Billing + competitors**
-- Google Play service fees: https://support.google.com/googleplay/android-developer/answer/112622
+- Google Play service fees (ab lagu nahi, sirf comparison): https://support.google.com/googleplay/android-developer/answer/112622
+- Android developer verification: https://developer.android.com/developer-verification/guides
 - Ente: https://ente.io/ · Immich: https://immich.app/ · Google Photos: https://www.google.com/photos/about/
 
 ---

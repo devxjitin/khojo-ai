@@ -1,8 +1,8 @@
 # 🚀 KHOJO AI — Delivery Plan (Phases → Sprints → Mini-sprints + CI/CD + AWS OTA)
 
 > **Base document:** `Khojo_AI_Final_Blueprint_v2.2.md` (product, architecture, cost — sab wahan hai). Ye document sirf **"kab, kis order mein, aur kaise ship karenge"** batata hai.
-> **Delivery model:** `ultron-android` repo jaisa — har merge to `main` → GitHub Actions → signed APK → private S3 (AWS) → app khud update dikhata hai → SHA-256 verify → install.
-> **Version:** 1.0 · **Date:** 10 November 2026 · **Start:** Mon 16 Nov 2026 · **Team assumption:** Lean team (1 Android + 1 ML/backend). Solo ho to har phase ~1.5x.
+> **Delivery model:** `ultron-android` repo jaisa — har merge to `main` → GitHub Actions → signed APK → private S3 (AWS) → app khud update dikhata hai → SHA-256 verify → install. **Play Store nahi:** APK website se, app **activation key** se unlock hoti hai ([ADR-002](adr/ADR-002-no-play-store-activation-keys.md)).
+> **Version:** 1.1 (no Play Store, activation keys) · **Date:** 10 November 2026 · **Start:** Mon 16 Nov 2026 · **Team assumption:** Lean team (1 Android + 1 ML/backend). Solo ho to har phase ~1.5x.
 
 ---
 
@@ -10,13 +10,14 @@
 
 | Sawal | Jawab |
 |---|---|
-| **Kitne phases?** | 7 — Phase 0 (Foundation + CI/CD + Benchmark) → 1 (Photo+OCR MVP) → 2 (Seller paid pilot + Play Store) → 2B (People & Faces) → 3 (Video) → 4 (Audio + Voice) → 5 (On-device + Advanced) |
+| **Kitne phases?** | 7 — Phase 0 (Foundation + CI/CD + Benchmark) → 1 (Photo+OCR MVP) → 2 (Seller paid pilot + public launch) → 2B (People & Faces) → 3 (Video) → 4 (Audio + Voice) → 5 (On-device + Advanced) |
 | **Sprint kitna lamba?** | **2 hafte** (10 working days). Total **21 sprints** → 16 Nov 2026 se 5 Sep 2027 |
 | **Mini-sprint kya hai?** | Har sprint ke andar **3 mini-sprints × 3 din** + day 10 = review/retro. **Har mini-sprint ka end = ek PR merge = testers ke phone par automatic OTA update** |
-| **Delivery kaise?** | GitHub Actions: PR par `Checks` → `main` par `Publish OTA` (APK → S3 Mumbai → `latest.json`) + `Deploy Backend` (Docker → ECR → Lambda/ECS) + tag par `Play Release` (AAB → Play internal track) |
-| **Update kaise milega?** | Pilot testers: **AWS OTA** (Ultron jaisa). Public users: **Google Play** (In-App Updates). Dono ek hi codebase, alag build flavors |
+| **Delivery kaise?** | GitHub Actions: PR par `Checks` → `main` par `Publish OTA` (APK → S3 Mumbai → `latest.json`) + `Deploy Backend` (Docker → ECR → Lambda/ECS). Play Store / AAB pipeline **nahi** |
+| **Install + update kaise?** | **Sabke liye** (team, pilot, public): website se APK → phir **AWS OTA** se automatic updates (Ultron jaisa). Ek hi build, koi flavor nahi |
+| **App unlock kaise?** | **Activation key** `KHOJ-XXXX-XXXX-XXXX-XXXX` (Ultron jaisa). Key = plan + validity, ek phone par ek waqt. Kharidari app ke bahar (website / payment link / admin), app sirf key check karti hai |
 | **Pehla tester build kab?** | **Sprint 2 end (13 Dec 2026)** — "hello world" + OTA pipeline live. Pehla useful search build: **Sprint 4 end (10 Jan 2027)** |
-| **Public Play Store launch?** | **Sprint 9 end (21 Mar 2027)** — agar Phase 2 go/no-go gate pass ho |
+| **Public launch?** | **Sprint 9 end (21 Mar 2027)** — website download + paid keys, agar Phase 2 go/no-go gate pass ho |
 
 ---
 
@@ -27,7 +28,7 @@
 3. [CI/CD + AWS OTA design (Ultron-style)](#3-cicd--aws-ota-design)
 4. [Phase 0 — Foundation, CI/CD, Benchmark](#phase-0--foundation-cicd-benchmark-s1s2)
 5. [Phase 1 — Photo + OCR MVP](#phase-1--photo--ocr-mvp-s3s6)
-6. [Phase 2 — Seller paid pilot + Play Store](#phase-2--seller-paid-pilot--play-store-s7s9)
+6. [Phase 2 — Seller paid pilot + public launch](#phase-2--seller-paid-pilot--public-launch-s7s9)
 7. [Phase 2B — People & Faces](#phase-2b--people--faces-s10s11)
 8. [Phase 3 — Video moments](#phase-3--video-moments-s12s14)
 9. [Phase 4 — Audio + Voice search](#phase-4--audio--voice-search-s15s17)
@@ -57,8 +58,8 @@ PHASE  (ek business goal + exit gate, 2–8 hafte)
 
 **Versioning:**
 - `versionName` = `MAJOR.MINOR.PATCH` → Phase = MINOR, mini-sprint = PATCH. Example: Phase 1 Sprint 4 Mini-B = `0.1.5`.
-- `versionCode` = **minutes since Unix epoch** (Ultron jaisa) → hamesha badhta hai, OTA aur Play dono flavors mein safe, collisions nahi.
-- `1.0.0` = public Play Store launch (end of Phase 2).
+- `versionCode` = **minutes since Unix epoch** (Ultron jaisa) → hamesha badhta hai, collisions nahi.
+- `1.0.0` = public launch (website + paid keys, end of Phase 2).
 
 ---
 
@@ -67,14 +68,14 @@ PHASE  (ek business goal + exit gate, 2–8 hafte)
 | Sprint | Dates | Phase | Sprint goal | Release |
 |---|---|---|---|---|
 | S1 | 16 Nov – 29 Nov 2026 | 0 | Repo + CI checks + AWS base + benchmark dataset | — (internal) |
-| S2 | 30 Nov – 13 Dec 2026 | 0 | **OTA pipeline live** + model benchmark decision | `0.0.x` OTA (shell app) |
+| S2 | 30 Nov – 13 Dec 2026 | 0 | **OTA pipeline live** + single build (no `play` flavor) + model benchmark decision | `0.0.x` OTA (shell app) |
 | S3 | 14 Dec – 27 Dec 2026 | 1 | App shell, onboarding, Photo Picker, ObjectBox | `0.1.0–0.1.2` |
-| S4 | 28 Dec 2026 – 10 Jan 2027 | 1 | Inference service + image indexing end-to-end | `0.1.3–0.1.5` **first real search** |
+| S4 | 28 Dec 2026 – 10 Jan 2027 | 1 | Inference service + **activation keys** + image indexing end-to-end | `0.1.3–0.1.5` **first real search** |
 | S5 | 11 Jan – 24 Jan 2027 | 1 | OCR + Hinglish normalizer + RRF ranker | `0.1.6–0.1.8` |
 | S6 | 25 Jan – 07 Feb 2027 | 1 | Results UX, share/copy, failures, privacy → **MVP gate** | `0.1.9–0.1.11` |
-| S7 | 08 Feb – 21 Feb 2027 | 2 | Collections + batch share + Auth | `0.2.0–0.2.2` |
-| S8 | 22 Feb – 07 Mar 2027 | 2 | Play Billing + entitlements + growth infra | `0.2.3–0.2.5` |
-| S9 | 08 Mar – 21 Mar 2027 | 2 | Seller pilot tuning + Play production → **Go/No-go** | **`1.0.0` Play Store** |
+| S7 | 08 Feb – 21 Feb 2027 | 2 | Collections + batch share + **key admin web app** | `0.2.0–0.2.2` |
+| S8 | 22 Feb – 07 Mar 2027 | 2 | Plan quotas + **key sales (payment → key email)** + growth infra | `0.2.3–0.2.5` |
+| S9 | 08 Mar – 21 Mar 2027 | 2 | Seller pilot tuning + download site → **Go/No-go** | **`1.0.0` public (website)** |
 | S10 | 22 Mar – 04 Apr 2027 | 2B | Face detection + embedding + clustering (on-device) | `1.1.0–1.1.2` |
 | S11 | 05 Apr – 18 Apr 2027 | 2B | People UI + "Ram ki kurta photo" search | `1.1.3–1.1.5` |
 | S12 | 19 Apr – 02 May 2027 | 3 | Video import + keyframes + frame embeddings | `1.2.0–1.2.2` |
@@ -98,7 +99,7 @@ gantt
   section Phase 1
   Photo + OCR MVP                :p1, after p0, 56d
   section Phase 2
-  Seller pilot + Play launch     :p2, after p1, 42d
+  Seller pilot + public launch   :p2, after p1, 42d
   section Phase 2B
   People & Faces                 :p2b, after p2, 28d
   section Phase 3
@@ -122,24 +123,29 @@ gantt
 | `publish-update.ps1 -Mode Build/Publish` + `ota-manifest.json` (commit, sha256, size, version) | ✅ Same script, Khojo bucket/names | Local se bhi ek command mein publish |
 | `changelog.md` = version + notes source | ✅ Same | Phone par jo dikhta hai wahi changelog |
 | S3 bucket **us-east-1** + Transfer Acceleration | 🔧 **ap-south-1 (Mumbai)**, acceleration ki zaroorat nahi | Users India mein; blueprint ka region |
-| `ultron-updates` Lambda — Firebase JWT + App Check, presigned link 30 min | 🔧 `khojo-updates` Lambda — **Cognito JWT** authorizer (+ Play Integrity baad mein) | Khojo ka auth Cognito hai |
+| `ultron-updates` Lambda — Firebase JWT + App Check, presigned link 30 min | ✅ `khojo-updates` Lambda — abhi `BETA_KEY`, Sprint 4B se **Firebase JWT** (anonymous) + App Check | Ultron jaisa; Cognito plan hata diya |
+| `mcp/license` + `mcp/license-admin` + `ultronapp/` — activation keys, device binding, admin web app, Resend email | ✅ `lambdas/license` + `lambdas/license-admin` + `admin/` (Sprint 4B, 7C) | Play nahi, isliye unlock + paid plans key se |
 | Sirf APK OTA; Lambda deploy manual | ➕ **`deploy-backend.yml`** — inference service + infra bhi CD se | Khojo ka backend (FastAPI + model) bada hai, manual deploy risky |
-| — | ➕ **`play-release.yml`** — AAB → Play internal track | Public launch + Play Billing ke liye Play zaroori |
 | — | ➕ `rolloutPercent` + `minSupportedVersionCode` in `latest.json` | Staged rollout + force update jab API badle |
 | Purane APK: last 3 rakho | ✅ Same | Storage sasta, rollback ke liye source available |
 
-### 3.2 ⚠️ Important — OTA vs Play Store (do flavors)
+### 3.2 ⚠️ Distribution — Play Store nahi, website APK + activation key
 
-Google Play policy: **Play se install hua app khud APK download karke update nahi kar sakta** (sirf Play ke through). Aur **Play Billing sirf Play-installed app mein chalta hai**. Isliye:
+Faisla aur wajah: [ADR-002](adr/ADR-002-no-play-store-activation-keys.md). Short mein:
 
-| Flavor | Kiske liye | Update kaise | Billing | Permission |
-|---|---|---|---|---|
-| `ota` | Internal team + pilot sellers (Phase 0–2), beta testers baad mein | **AWS OTA** (`AppUpdater` — Ultron jaisa) | Pilot mein free / manual entitlement | `REQUEST_INSTALL_PACKAGES` (sirf is flavor ke manifest mein) |
-| `play` | Public users (Phase 2 ke end se) | **Play In-App Updates API** (flexible / immediate) | Google Play Billing | Install permission **nahi** |
-
-- Updater code sirf `src/ota/` source set mein (Ultron mein bhi `src/ota/` hai) → Play build mein code hi nahi jaata.
-- Dono flavors ka `applicationId` alag rakho (`com.khojoai.app.beta` vs `com.khojoai.app`) taaki ek phone par dono install ho sakein aur signing keys mix na hon.
-- **Signing:** `ota` = apni upload/OTA key (GitHub secret mein, backup offline). `play` = Play App Signing (upload key alag).
+| Cheez | Kaise |
+|---|---|
+| Build | **Ek hi build** (`play` flavor hatana, Sprint 2). `applicationId = com.khojoai.app` (abhi koi install nahi hua, isliye badalna free) |
+| Install | Website par "Download" button → `GET /v1/releases/download` (public, throttled) → APK. Install guide (unknown sources) screenshots ke saath |
+| Updates | Sabke liye **AWS OTA** (`AppUpdater`, Ultron jaisa). `REQUEST_INSTALL_PACKAGES` main manifest mein |
+| Unlock | Pehli screen = **Activation** (key daalo). Bina valid key ke app locked; updates phir bhi milte hain |
+| Identity | Firebase Anonymous Auth (uid) + App Check (Play Integrity, sirf device integrity). Har API call par Firebase JWT |
+| Key | `KHOJ-XXXX-XXXX-XXXX-XXXX` (Crockford base32, 80 bit). DynamoDB `khojo-licenses` mein sirf SHA-256 |
+| Device | Ek key ek phone par ek waqt. Naye phone par activate = key move, purana phone lock. Din mein max 1 move (admin "allow move" se reset) |
+| Expiry | `durationDays` pehli activation se, `0` = lifetime. Offline 7 din grace, expiry ke baad nahi. Expire par local index delete **nahi** |
+| Plans | Key ka `plan` → quota (blueprint section 15): `free` (₹0, website par email se), `trial`, `pilot`, `plus`, `seller_pro`, `media_pro`. **Har cloud call par server license + quota check karta hai** |
+| Keys kaun banata hai | Admin web app (`admin/`, Ultronapp jaisa) → key buyer ko Resend email. Baad mein website payment success → auto key |
+| Signing | Ek OTA key, hamesha wahi (GitHub secret + offline backup 2 jagah). Android developer verification ke liye yahi key + package register karna hai |
 
 ### 3.3 Repo layout (monorepo, Ultron jaisa)
 
@@ -150,16 +156,18 @@ khojo-ai/
 │   │   ├── checks.yml            # har PR (+ reusable)
 │   │   ├── publish-ota.yml       # main push, android/** changes
 │   │   ├── deploy-backend.yml    # main push, inference-service/** ya infrastructure/**
-│   │   ├── play-release.yml      # tag v*.*.* ya manual
 │   │   └── nightly-eval.yml      # roz raat: full eval + cost report (optional, Phase 1 se)
 │   └── actions/gradle-memory/action.yml
-├── android/                      # app (flavors: ota, play) — blueprint section 12 ka structure
-│   └── app/src/{main,ota,play,test}/
+├── android/                      # app (ek hi build) — blueprint section 12 ka structure
+│   └── app/src/{main,test}/
 │       └── main/assets/changelog.md
 ├── inference-service/            # FastAPI + SigLIP 2 + workers + Dockerfile + tests/
 ├── lambdas/
 │   ├── khojo-updates/            # OTA "latest" + presigned download
-│   └── control/                  # presign, jobs, entitlement, billing verify
+│   ├── license/                  # activate + status (Ultron mcp/license jaisa)
+│   ├── license-admin/            # admin: keys create/edit/revoke/reissue/allow-move + Resend email
+│   └── control/                  # presign, jobs, license + quota check
+├── admin/                        # key admin web app (Ultronapp jaisa, static HTML + ES modules)
 ├── infrastructure/               # Terraform: envs/staging, envs/prod, modules/*
 ├── eval/                         # dataset manifest, queries.csv, run_eval.py, baseline.json
 ├── scripts/
@@ -185,10 +193,9 @@ flowchart LR
   REQ --> MERGE[Merge to main]
   MERGE -->|android/**| OTA[[publish-ota.yml]]
   MERGE -->|inference-service/** infra/**| BE[[deploy-backend.yml]]
-  TAG[git tag v1.x.y] --> PLAY[[play-release.yml]]
   OTA --> S3[(S3 khojo-app-updates ap-south-1)]
   BE --> STG[Staging] -->|manual approve| PROD[Prod]
-  PLAY --> INT[Play internal track] -->|manual promote| PRODPLAY[Play production]
+  S3 --> WEB[Website download + in-app OTA]
 ```
 
 #### A) `checks.yml` — har PR par (Ultron + Khojo extras)
@@ -198,7 +205,7 @@ flowchart LR
 | `changes` | Hamesha | `scripts/ci_changes.py` → outputs `android`, `backend`, `infra`, `eval`, `publish` |
 | `version` | PR + APK-affecting change | `check_version_bump.py` — `changelog.md` top version base se bada hona chahiye |
 | `ci` | Hamesha | Workflow logic + publish-script regression tests |
-| `android` | `android == true` | `./gradlew testOtaDebugUnitTest testPlayDebugUnitTest lintOtaDebug -PappVersionCode=1 --build-cache` |
+| `android` | `android == true` | `./gradlew testDebugUnitTest lintDebug -PappVersionCode=1 --build-cache` (flavor hatne ke baad) |
 | `backend` | `backend == true` | Python 3.11+: `pytest`, `ruff`, Docker image build (push nahi), embedding shape/normalization test |
 | `infra` | `infra == true` | `terraform fmt -check`, `validate`, `tflint`, **`plan` comment PR par** (read-only OIDC role) |
 | `eval` | `eval == true` (search/, ranker, normalizer, model config badla) | Small eval set (200 images / 50 queries, cached embeddings) → **Recall@5 aur MRR@10 baseline se 2 points se zyada gire to fail** |
@@ -232,16 +239,32 @@ Ultron jaisa hi order — **kuch bhi live tab tak nahi jab tak sab pass na ho:**
 1. Validate (checks reuse).
 2. Docker build → **ECR push, tag = git SHA** (`latest` tag kabhi nahi).
 3. `terraform apply` **staging** (image tag variable) → Lambda alias `staging` / ECS service update.
-4. **Smoke tests** staging par: `/v1/embeddings/text` dimension + L2 norm, image job round-trip, S3 temp delete, entitlement 401 bina token.
+4. **Smoke tests** staging par: `/v1/embeddings/text` dimension + L2 norm, image job round-trip, S3 temp delete, 401 bina token, 403 bina active key.
 5. **GitHub Environment `prod` — manual approval** (aap khud approve) → `terraform apply` prod.
 6. Lambda: alias shift (pehle 10% weighted, CloudWatch error alarm OK to 100%). ECS: rolling + circuit breaker auto-rollback.
 7. **Model change = alag rule:** model revision/checksum `inference-service/models.lock` mein; ye badla to deploy **naye `modelVersion` endpoint ke saath** hota hai, purana bhi chalta rehta hai jab tak apps reindex na kar lein (blueprint 7.2 rule #4).
 
-#### D) `play-release.yml` — tag `v*.*.*` ya manual (Phase 2 se)
+#### D) Activation keys (Ultron `mcp/license` jaisa) — Sprint 4B se
 
-1. Validate → `bundlePlayRelease` (AAB) with upload key.
-2. Play Developer API (service account JSON secret) → **internal track** upload, release notes `changelog.md` se.
-3. Promote internal → closed → production (staged 10% → 50% → 100%) **Play Console mein manually** — CI production par kabhi direct nahi.
+```mermaid
+sequenceDiagram
+  participant App as Khojo app
+  participant FB as Firebase Auth
+  participant API as API GW + license Lambda
+  participant DB as DynamoDB khojo-licenses
+  App->>FB: Anonymous sign-in (uid) + App Check
+  App->>API: POST /v1/license/activate {key} (Firebase JWT)
+  API->>DB: get(sha256(key))
+  API->>API: revoked? expired? doosre phone par aur aaj move ho chuka?
+  API->>DB: uid = caller, activatedAt / expiresAt set (pehli baar)
+  API-->>App: {active, plan, expiresAt, reason, name, email}
+  App->>App: Status cache (7 din offline grace) → app unlock
+  Note over App,API: App start + har 6 ghante: POST /v1/license/status. Cloud calls par control Lambda khud license + quota dekhta hai
+```
+
+- `reason` values (Ultron jaisa): `unknown_key`, `expired`, `revoked`, `moved`, `moved_recently`. Malformed request hi 4xx; baaki sab 200 + `active:false`.
+- Throttle: activate 1 rps / burst 5 (key guessing rokne ke liye; 80-bit key waise bhi guess nahi hoti).
+- Test keys: `python scripts/create-license-key.py --plan pilot --days 30` (admin app aane tak).
 
 #### E) `nightly-eval.yml` (Phase 1 se, optional par recommended)
 - Full eval set (1,000 images / 100+ queries, En/Hi/Hinglish) → Recall@5, MRR@10, latency → `eval/reports/` mein commit nahi, artifact + trend.
@@ -253,7 +276,10 @@ Ultron jaisa hi order — **kuch bhi live tab tak nahi jab tak sab pass na ho:**
 |---|---|---|
 | S3 bucket | `khojo-app-updates-<accountId>` · ap-south-1 · **Block Public Access ON** · SSE-S3 · versioning ON | `apk/khojo-<versionCode>.apk` + `latest.json` |
 | Lambda | `khojo-updates` (Python) · `GET /v1/releases/latest` (JWT) · `GET /v1/releases/download` (public, throttled, website button) | 30-min presigned URL; rollout % logic yahin |
-| API Gateway | Same HTTP API jo baaki `/v1/*` serve karta hai · Cognito JWT authorizer | `api.<aapka-domain>` |
+| Lambda | `khojo-license` (`/v1/license/activate`, `/v1/license/status`) + `khojo-license-admin` (`/v1/admin/licenses*`, `ADMIN_EMAILS` check) | Sprint 4B / 7C |
+| DynamoDB | `khojo-licenses` · PK `keyHash` · GSI `uid` · PITR ON · `DeletionPolicy`/`prevent_destroy` | Sirf key ka SHA-256, asli key kabhi nahi |
+| SSM | `/khojo/resend-api-key` (SecureString) | Key emails (Resend, `no-reply@<domain>`) |
+| API Gateway | Same HTTP API jo baaki `/v1/*` serve karta hai · **Firebase JWT** authorizer (issuer `securetoken.google.com/<project>`) | `api.<aapka-domain>` |
 | IAM role (OIDC) | `gh-khojo-ota-publish` — trust: `repo:<owner>/khojo-ai:ref:refs/heads/main` | Sirf `s3:GetObject/PutObject` on `latest.json` + `apk/*`, `s3:ListBucket`, `s3:DeleteObject` on `apk/*` |
 | IAM role (OIDC) | `gh-khojo-backend-deploy` — trust: `environment:prod` + `environment:staging` | ECR push, Lambda/ECS update, Terraform state access |
 | IAM role (OIDC) | `gh-khojo-plan-readonly` — trust: pull_request | `terraform plan` ke liye read-only |
@@ -264,10 +290,10 @@ Ultron jaisa hi order — **kuch bhi live tab tak nahi jab tak sab pass na ho:**
 
 ```mermaid
 sequenceDiagram
-  participant App as Khojo (ota flavor)
+  participant App as Khojo app
   participant API as API GW + khojo-updates Lambda
   participant S3 as S3 (private)
-  App->>API: GET /v1/releases/latest (Cognito JWT)
+  App->>API: GET /v1/releases/latest (Firebase JWT; abhi BETA_KEY)
   API->>S3: read latest.json
   API->>API: rolloutPercent check (hash userId)
   API-->>App: latest.json + apkUrl (presigned, 30 min)
@@ -288,14 +314,12 @@ sequenceDiagram
 | Name | Type | Kahan use |
 |---|---|---|
 | `KHOJO_OTA_KEYSTORE` (base64) + `KHOJO_OTA_KEYSTORE_PASSWORD` + `KHOJO_OTA_KEY_ALIAS` | secret | OTA APK signing |
-| `KHOJO_PLAY_UPLOAD_KEYSTORE` (+ password/alias) | secret | Play AAB upload key |
-| `PLAY_SERVICE_ACCOUNT_JSON` | secret | Play Developer API upload |
-| `GOOGLE_SERVICES_JSON` (base64) | secret | Crashlytics |
-| `APP_CONFIG_PROPERTIES` | secret | API base URL, Cognito pool/client id |
+| `GOOGLE_SERVICES_JSON` (base64) | secret | Firebase Auth + App Check + Crashlytics |
+| `APP_CONFIG_PROPERTIES` | secret | `API_BASE_URL`, `STORE_URL` (activation screen ka "key kharido" link), `BETA_KEY` (Sprint 4B tak) |
 | `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_DEPLOY_ROLE_ARN`, `AWS_PLAN_ROLE_ARN` | variable | OIDC roles (secrets nahi — ARN sensitive nahi) |
 | `AWS_REGION` = `ap-south-1` | variable | — |
 
-> 🔐 Signing keys ka **offline backup** (2 jagah). OTA key kho gayi = testers ko uninstall/reinstall karna padega.
+> 🔐 Signing key ka **offline backup** (2 jagah). OTA key kho gayi = **har user** ko uninstall/reinstall karna padega (Play App Signing jaisa koi bachav nahi).
 
 ### 3.8 Branch protection (Ultron `docs/CI_CD.md` jaisa)
 `main`: PR required · `Required checks` status required · branch up-to-date · conversations resolved · admins bhi enforce · force-push/delete OFF · sole maintainer ho to approval count 0. **GitHub API se verify karo ki ye actually active hai.**
@@ -311,7 +335,7 @@ sequenceDiagram
 
 | Mini | Days | Build | Ship / Done |
 |---|---|---|---|
-| **1A** | 16–18 Nov | Private repo `khojo-ai` (monorepo layout 3.3) · Android skeleton (Compose, Hilt, flavors `ota`/`play`) · `changelog.md` · `ci_changes.py` + `check_version_bump.py` Ultron se port | `checks.yml` PR par green · branch protection ON |
+| **1A** | 16–18 Nov | Private repo `khojo-ai` (monorepo layout 3.3) · Android skeleton (Compose, Hilt, flavors `ota`/`play` — S2 mein ek build bana diya) · `changelog.md` · `ci_changes.py` + `check_version_bump.py` Ultron se port | `checks.yml` PR par green · branch protection ON |
 | **1B** | 19–23 Nov | AWS: credits balance/expiry note · Budgets alerts · **GPU + Spot vCPU quota increase request (Mumbai)** · Terraform state bucket + lock · OIDC provider + 3 roles · `infra` CI job (plan on PR) | `terraform plan` PR comment mein dikhe |
 | **1C** | 24–26 Nov | ML: 1,000 image eval dataset (consented) + 100 queries En/Hi/Hinglish + labels · `eval/run_eval.py` skeleton · Business: 5 seller interviews | `eval/queries.csv` v1 · interview notes |
 | Day 10 | 27 Nov | Review + retro | — |
@@ -321,7 +345,7 @@ sequenceDiagram
 | Mini | Days | Build | Ship / Done |
 |---|---|---|---|
 | **2A** | 30 Nov – 2 Dec | S3 `khojo-app-updates` · `khojo-updates` Lambda + API GW route · `publish-update.ps1` port · `publish-ota.yml` · OTA signing key generate + backup | **First OTA `0.0.1`** — empty shell app, testers ke phone par install |
-| **2B** | 3–7 Dec | `AppUpdater` + `UpdateManager` + Update card UI (ota flavor) · SHA-256 verify · `UpdatedReceiver` · rollout % + min version logic | `0.0.2` — phone khud "Update available" dikhaye aur `0.0.3` install kare ✅ |
+| **2B** | 3–7 Dec | `AppUpdater` + `UpdateManager` + Update card UI · SHA-256 verify · `UpdatedReceiver` · rollout % + min version logic · **`play` flavor hatao → ek build, `com.khojoai.app`** (pehle install se pehle) | `0.0.2` — phone khud "Update available" dikhaye aur `0.0.3` install kare ✅ |
 | **2C** | 8–10 Dec | Benchmark: SigLIP 2 Base vs So400m (Recall@5, MRR@10, latency, RAM, ₹/1000) on GPU + CPU · Lambda vs EC2 cold start · Hinglish dictionary v0 (~500 words) · 5 more interviews | **ADR-003 Model choice** · `models.lock` · ADR-004 Lambda vs EC2 |
 | Day 10 | 11 Dec | **Phase 0 gate review** | Go → Phase 1 |
 
@@ -347,7 +371,7 @@ sequenceDiagram
 | Mini | Build | Ship |
 |---|---|---|
 | **4A** | `inference-service`: FastAPI `/v1/embeddings/text` + image encode, same checkpoint, `max_length=64`, L2 norm · Docker · `deploy-backend.yml` staging | Backend `staging` live via CD |
-| **4B** | `/v1/uploads/presign` + `/v1/embeddings/image-jobs` + `/v1/jobs/{id}` · S3 temp (1-day lifecycle + delete after process) · SQS · Cognito anon/guest auth for pilot | Prod deploy (manual approve) |
+| **4B** | `/v1/uploads/presign` + `/v1/embeddings/image-jobs` + `/v1/jobs/{id}` · S3 temp (1-day lifecycle + delete after process) · SQS · **Firebase anonymous auth + App Check · `khojo-licenses` table + `license` Lambda (activate/status) · Activation screen + 7-din offline cache · control Lambda par license check · `BETA_KEY` hatao** · `create-license-key.py` | Prod deploy (manual approve) · testers ko pilot keys |
 | **4C** | Android: WorkManager `IndexWorker` (resize 384, EXIF strip, batch 16–32, retry/backoff) · text query → HNSW top-50 → simple grid | **`0.1.5` — pehli asli search testers ke phone par** 🎉 |
 
 ### S5 · 11 Jan – 24 Jan 2027 — OCR + Hinglish + ranking
@@ -364,30 +388,30 @@ sequenceDiagram
 |---|---|---|
 | **6A** | Results grid (Coil, paging), filter chips (type/date/source), refine chips, photo detail, multi-select · Sharesheet · Copy text | `0.1.9` share/copy |
 | **6B** | Indexing progress screen (pause/cancel/retry, failure reasons) · empty/error states (offline, quota, file missing) · stale URI handling | `0.1.10` |
-| **6C** | Privacy settings (Clear local index, Delete server data) · log redaction · Crashlytics + opt-in telemetry · Play Console internal track setup + `play-release.yml` dry run | `0.1.11` + first `play` AAB internal |
+| **6C** | Privacy settings (Clear local index, Delete server data) · log redaction · Crashlytics + opt-in telemetry · Settings → "Check for update" + Wi-Fi only | `0.1.11` |
 | Day 10 | **Phase 1 gate** — eval report + latency report + tester feedback | Go → Phase 2 |
 
 ---
 
-## Phase 2 — Seller paid pilot + Play Store (S7–S9)
+## Phase 2 — Seller paid pilot + public launch (S7–S9)
 
 **Goal:** 30–50 sellers ka repeat use + willingness-to-pay proof → public launch.
 **Exit gate (Go/No-go, blueprint 23.4):** Activation ≥ 60% · search success ≥ 50% · D7 ≥ 30% · pilot mein paid/pre-commit interest ka credible saboot · infra cost/active user < 30% ARPU.
 
-### S7 · 08 Feb – 21 Feb 2027 — Collections + Auth
+### S7 · 08 Feb – 21 Feb 2027 — Collections + key admin
 
 | Mini | Build | Ship |
 |---|---|---|
 | **7A** | `Collection` entity · save results as collection · collection screen | `0.2.0` |
 | **7B** | Batch share (50 + saved share sets) · catalogue mode | `0.2.1` |
-| **7C** | Google Sign-In + Cognito · guest → account migration · `DELETE /v1/me` + `/v1/me/data` · **pilot sellers onboard on OTA (first 15)** | `0.2.2` |
+| **7C** | **Key admin web app** (`admin/`, Ultronapp port: Google sign-in, `ADMIN_EMAILS`, create/edit/revoke/reissue/allow-move, dashboard, CSV) + `license-admin` Lambda + Resend key email · Settings → Activation (plan, expiry, masked key, buyer name) · `DELETE /v1/me` + `/v1/me/data` · **pilot sellers onboard (first 15, pilot keys)** | `0.2.2` |
 
-### S8 · 22 Feb – 07 Mar 2027 — Billing + entitlements + growth infra
+### S8 · 22 Feb – 07 Mar 2027 — Plan quotas + key sales + growth infra
 
 | Mini | Build | Ship |
 |---|---|---|
-| **8A** | DynamoDB entitlements + usage meters · server-side quota on every cloud call · signed entitlement JWT · kill switch flag | Backend prod |
-| **8B** | Play Billing (play flavor): plans Free/Plus/Seller Pro, 7-day trial · `/v1/billing/verify` · RTDN (Pub/Sub → Lambda) · paywall + usage meter screen | `0.2.4` (Play internal track — billing sirf Play build mein test hoga) |
+| **8A** | Plan → quota map (key ka `plan`) · usage meters (DynamoDB) · server-side quota on every cloud call · kill switch flag | Backend prod |
+| **8B** | Key sales: website par plans page + payment link (Razorpay/UPI, app ke bahar) → payment webhook → key auto-create + email · 7-day `trial` key · renew = naya key ya admin extend · usage meter + "key expire hone wali hai" screen | `0.2.4` |
 | **8C** | Growth infra: always-on text encoder (ECS/EC2) + GPU Spot batch worker (scale 0→N) · load test · CloudWatch dashboards · **pilot to 30–50 sellers** | `0.2.5` |
 
 ### S9 · 08 Mar – 21 Mar 2027 — Tuning + public launch
@@ -395,10 +419,10 @@ sequenceDiagram
 | Mini | Build | Ship |
 |---|---|---|
 | **9A** | Seller feedback se clothing/color/pattern + Hinglish dictionary tuning · eval baseline update | `0.2.6` |
-| **9B** | Price experiments (₹79 vs ₹99, ₹149 vs ₹199) · Play listing, Data safety form, privacy policy on domain, account deletion flow · launch checklist (blueprint 23) | `0.2.7` |
-| **9C** | **Go/No-go meeting** → `v1.0.0` tag → Play internal → closed → **production staged 10%** · OTA pilot users ko "Play version par shift karo" in-app message | **`1.0.0` Play Store** 🚀 |
+| **9B** | Price experiments (₹79 vs ₹99, ₹149 vs ₹199) · **download website** (Download button, install guide, plans, privacy policy, terms, refund policy) · account deletion flow · **Android developer verification registration** (package + signing key) · launch checklist (blueprint 23) | `0.2.7` |
+| **9C** | **Go/No-go meeting** → `1.0.0` OTA (`rolloutPercent` 20% → 100%) · website public · paid keys on | **`1.0.0` public (website)** 🚀 |
 
-> Launch ke baad: `ota` flavor sirf **beta channel** ke liye (early-access sellers + team). Public users = Play.
+> Launch ke baad bhi ek hi channel: sab users OTA par. Beta features remote feature flags ke peeche (team/pilot keys ke liye ON).
 
 ---
 
@@ -411,7 +435,7 @@ sequenceDiagram
 
 | Mini | Build | Ship |
 |---|---|---|
-| **10A** | AuraFace-v1 INT8 conversion + phone benchmark vs FP32 · **license check** (sirf recognition model, InsightFace detector nahi) · model file on S3/Play Feature Delivery with checksum | ADR-005 Face model |
+| **10A** | AuraFace-v1 INT8 conversion + phone benchmark vs FP32 · **license check** (sirf recognition model, InsightFace detector nahi) · model file on S3 (on-demand download) with checksum | ADR-005 Face model |
 | **10B** | ML Kit face detection + quality filter (size, yaw, blur) + 5-landmark align 112×112 · `Person` + `FaceInstance` (512-d HNSW) · feature flag `faces` OFF | `1.1.1` (flag OFF) |
 | **10C** | Bulk agglomerative clustering (charging + idle) + incremental assign (T_high/T_low) · purity tests on family photo set | `1.1.2` beta channel flag ON |
 
@@ -421,7 +445,7 @@ sequenceDiagram
 |---|---|---|
 | **11A** | Face consent screen · People grid · name/rename/aliases · OFF = delete all face data | `1.1.3` |
 | **11B** | Merge, remove, hide, "Kya ye Ram hai?" swipe suggestions · corrections feed matching | `1.1.4` |
-| **11C** | `PersonQueryParser` (name + alias + Devanagari, AND for 2 people) + filtered exact cosine · "👤 Ram" chip · Data safety update · fairness report | **`1.1.5` Play staged rollout** |
+| **11C** | `PersonQueryParser` (name + alias + Devanagari, AND for 2 people) + filtered exact cosine · "👤 Ram" chip · privacy policy update · fairness report | **`1.1.5` OTA staged rollout** |
 
 ---
 
@@ -452,7 +476,7 @@ sequenceDiagram
 |---|---|---|
 | **14A** | Dense re-sample (±2s @ 0.5s) around candidates | `1.2.6` |
 | **14B** | `video_frames` meter + quotas + kill switch · thermal/battery tests | `1.2.7` |
-| **14C** | Video gate review · flag ON for beta → Play staged | **`1.2.8`** |
+| **14C** | Video gate review · flag ON for beta → OTA staged | **`1.2.8`** |
 
 ---
 
@@ -482,8 +506,8 @@ sequenceDiagram
 | Mini | Build | Ship |
 |---|---|---|
 | **17A** | 🎤 SpeechRecognizer query with confirm/edit | `1.3.6` |
-| **17B** | `audio_minutes` meter · Media Pro ₹349 (5 hrs video + 20 hrs audio) in Play Billing | `1.3.7` |
-| **17C** | Phase 4 gate · Play staged rollout | **`1.3.8`** |
+| **17B** | `audio_minutes` meter · Media Pro ₹349 (5 hrs video + 20 hrs audio) as `media_pro` key plan | `1.3.7` |
+| **17C** | Phase 4 gate · OTA staged rollout | **`1.3.8`** |
 
 ---
 
@@ -496,7 +520,7 @@ sequenceDiagram
 |---|---|---|---|
 | **S18** · 12 Jul – 25 Jul | SigLIP 2 Base → ONNX/LiteRT INT8 conversion | Phone benchmark (3 device classes): speed, RAM, battery | Ranking compare vs FP32 cloud → ADR-006 |
 | **S19** · 26 Jul – 08 Aug | On-device `ImageIndexer` behind flag · model via on-demand download + checksum | Hybrid mode: device class wise local vs cloud | Reindex migration (naya `modelVersion`, purane vectors active tab tak) · beta rollout |
-| **S20** · 09 Aug – 22 Aug | On-device text encoder | Fully offline search mode (marketing tabhi jab sach ho) | Play staged rollout + cost report (cloud spend drop) |
+| **S20** · 09 Aug – 22 Aug | On-device text encoder | Fully offline search mode (marketing tabhi jab sach ho) | OTA staged rollout + cost report (cloud spend drop) |
 | **S21** · 23 Aug – 05 Sep | CLAP sound search eval | Dedup / smart albums | Hardening, perf, tech debt → **`1.5.0`** + next-year roadmap |
 
 *(Encrypted cross-device sync + reranker sirf tab jab demand + economics saboot dein — Phase 6 candidate.)*
@@ -541,13 +565,15 @@ sequenceDiagram
 | Backend API breaking change | Naya version path (`/v2/...`) ya backward compatible; purane apps ke liye `minSupportedVersionCode` sirf last resort |
 | Model change | Naya `modelVersion` side-by-side; app background reindex; purana endpoint tab tak jab tak active users migrate na ho jaayein |
 | AWS bill spike | Budget alert → kill switch (cloud indexing pause) → investigate |
-| Play rejection | Play policy review har Play release se pehle (permissions, Data safety, billing) — OTA beta channel chalta rahega |
-| Signing key leak/lost | Offline backup se restore; leak ho to OTA testers ko naye key wale app par migrate (uninstall + reinstall) — isliye key ko secret + offline dono jagah hi rakho |
+| Play Protect warning / install block | Hamesha ek hi signing key · Android developer verification registration (India date track karo) · website par install guide · dangerous permissions kam |
+| Key leak / sharing | Admin revoke + reissue (bachi hui expiry ke saath) · device binding + 1 move/day · usage spike alarm |
+| License Lambda down | App 7 din offline grace par chalti hai; cloud calls 403 ke bajay retry dikhayein |
+| Signing key leak/lost | Offline backup se restore; leak ho to **sab users** ko naye key wale app par migrate (uninstall + reinstall) — isliye key ko secret + offline dono jagah hi rakho |
 
 ### Capacity reality check
-- Ye plan **lean team (2 devs)** ke liye hai. **Solo** ho to: har sprint ke 3 mini-sprints mein se sirf 2 lo, ya sprint length 3 hafte karo → Play launch ~June 2027.
+- Ye plan **lean team (2 devs)** ke liye hai. **Solo** ho to: har sprint ke 3 mini-sprints mein se sirf 2 lo, ya sprint length 3 hafte karo → public launch ~June 2027.
 - Phase 0 ki CI/CD investment (S1–S2) skip mat karo — baad ke 19 sprints mein har release isi par chalegi.
 
 ---
 
-*— Khojo AI Delivery Plan v1.0 · Bas bolo. Khojo. 🔎*
+*— Khojo AI Delivery Plan v1.1 · Bas bolo. Khojo. 🔎*
