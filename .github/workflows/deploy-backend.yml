@@ -1,0 +1,90 @@
+name: Deploy backend (staging)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - inference-service/**
+      - infrastructure/envs/staging/**
+      - scripts/smoke_inference.py
+      - .github/workflows/deploy-backend.yml
+  workflow_dispatch:
+
+# Two deploys must never write the Terraform state at the same time.
+concurrency:
+  group: deploy-backend-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    name: Build, deploy and smoke-test staging
+    # Switched on by hand (repository variable STAGING_DEPLOY_ENABLED=true) once the bootstrap role update is applied
+    # and the `staging` GitHub environment exists. Until then a merge to main does nothing here.
+    if: vars.STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: staging
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      TF_DIR: infrastructure/envs/staging
+      REPOSITORY: khojo-inference
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_BACKEND_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          terraform -chdir="$TF_DIR" init -input=false \
+            -backend-config="bucket=khojo-tf-state-${account_id}" \
+            -backend-config="key=envs/staging/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="dynamodb_table=khojo-tf-lock" \
+            -backend-config="encrypt=true"
+
+      # The function cannot exist before its image does, so the ECR repository is created first.
+      - name: Terraform apply (ECR repository only)
+        run: terraform -chdir="$TF_DIR" apply -input=false -auto-approve -target=aws_ecr_repository.inference -target=aws_ecr_lifecycle_policy.inference
+
+      - name: Build and push the image (tag = git SHA, never "latest")
+        run: |
+          set -euo pipefail
+          registry="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com"
+          image="${registry}/${REPOSITORY}:${GITHUB_SHA}"
+          if aws ecr describe-images --repository-name "$REPOSITORY" --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+            echo "::notice::Image $GITHUB_SHA is already in ECR; not rebuilding."
+          else
+            aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+            # Lambda cannot run the multi-manifest images that BuildKit makes by default.
+            docker buildx build --provenance=false --sbom=false --platform linux/amd64 --load -t "$image" inference-service
+            docker push "$image"
+          fi
+
+      - name: Terraform apply (function, with the new image)
+        run: terraform -chdir="$TF_DIR" apply -input=false -auto-approve -var "image_tag=${GITHUB_SHA}"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Smoke test staging
+        run: |
+          python -m pip install boto3 pillow
+          url="$(terraform -chdir="$TF_DIR" output -raw inference_url)"
+          python scripts/smoke_inference.py "$url"

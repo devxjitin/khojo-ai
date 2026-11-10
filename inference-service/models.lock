@@ -1,0 +1,7 @@
+{
+  "modelId": "google/siglip2-base-patch16-384",
+  "revision": "f775b65a79762255128c981547af89addcfe0f88",
+  "dimensions": 768,
+  "modelVersion": "siglip2-base-p16-384-v1",
+  "textMaxLength": 64
+}
