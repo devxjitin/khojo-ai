@@ -10,14 +10,14 @@ Ported from `ultron-android` and extended. Full design: [Delivery Plan, section 
 | Terraform bootstrap (state, OIDC roles, budgets) | ✅ written, **not applied yet** (needs your AWS admin login) |
 | `publish-ota.yml` + `publish-update.ps1` + `khojo-updates` Lambda + prod Terraform (bucket, API) | ✅ written (Sprint 2A), **not applied or run yet** |
 | `deploy-backend.yml` | Sprint 4 |
-| `play-release.yml` | Sprint 6 |
+| ~~`play-release.yml`~~ | Dropped: no Play Store ([ADR-002](adr/ADR-002-no-play-store-activation-keys.md)). OTA is the only release path |
 
 ## Validation (`Checks`)
 
 Runs on every PR and can be called by the release workflow. `scripts/ci_changes.py` reads the full diff and sets `android`, `backend`, `infra`, `eval`, `publish`. Docs-only PRs still run the cheap workflow-logic tests and the always-running `Required checks` gate, so a skipped job can never leave a required status pending.
 
 - **Version bumped:** a PR that reaches the APK must put a newer `## x.y.z` on top of `changelog.md`.
-- **Android:** unit tests + lint for both flavors (`ota`, `play`) with a fixed `-PappVersionCode=1`.
+- **Android:** unit tests + lint with a fixed `-PappVersionCode=1`. Today both flavors (`ota`, `play`); after the flavor collapse (ADR-002) just `testDebugUnitTest lintDebug`.
 - **Search-quality gate:** `eval/run_eval.py --quick` fails if Recall@5 or MRR@10 falls more than 2 points below `eval/baseline.json`. It passes until the baseline exists (created after the Sprint 2 benchmark).
 - **Infra:** `terraform fmt -check` and `validate` on each root module.
 

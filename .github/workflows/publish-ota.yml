@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       notes:
-        description: Release notes shown on the phone (default: from changelog.md)
+        description: "Release notes shown on the phone (default: from changelog.md)"
         required: false
         default: ""
       rollout_percent:

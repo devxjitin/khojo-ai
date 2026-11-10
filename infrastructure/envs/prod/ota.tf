@@ -81,6 +81,14 @@ data "aws_iam_policy_document" "updates_access" {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.ota.arn}/latest.json", "${aws_s3_bucket.ota.arn}/apk/*"]
   }
+
+  # Without ListBucket, S3 answers a missing latest.json with AccessDenied instead of NoSuchKey, and the endpoint
+  # would crash with a 500 before the first release is published.
+  statement {
+    sid       = "ListBucketForNotFound"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.ota.arn]
+  }
 }
 
 resource "aws_iam_role" "updates" {
