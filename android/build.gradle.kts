@@ -4,4 +4,5 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.3.21" apply false
     id("org.jetbrains.kotlin.kapt") version "2.3.21" apply false
     id("com.google.dagger.hilt.android") version "2.58" apply false
+    id("io.objectbox") version "5.4.2" apply false
 }

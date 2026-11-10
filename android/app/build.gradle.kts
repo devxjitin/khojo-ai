@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.kapt")
     id("com.google.dagger.hilt.android")
+    id("io.objectbox")
 }
 
 // Build-time values come from local.properties (gitignored). Nothing secret is compiled into the APK:
@@ -121,6 +122,10 @@ dependencies {
     // Self-update from our AWS bucket.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // On-device vector database. Its native libraries for the computer are needed so database tests can run in CI.
+    testImplementation("io.objectbox:objectbox-linux:5.4.2")
+    testImplementation("io.objectbox:objectbox-windows:5.4.2")
+    testImplementation("io.objectbox:objectbox-macos:5.4.2")
     testImplementation("junit:junit:4.13.2")
     // Real org.json: the Android one is only a stub in unit tests.
     testImplementation("org.json:json:20240303")

@@ -12,3 +12,6 @@ __pycache__/
 eval/data/
 eval/reports/
 *.tfplan
+
+# ObjectBox native library copied next to the module for local tests
+android/app/objectbox-jni-*
