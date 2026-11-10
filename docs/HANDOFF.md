@@ -40,9 +40,10 @@ Local files (not in git): `~/.khojo-android/ota.keystore`, `ota_keystore_passwor
 ## Next steps, in order
 
 1. ~~Sprint 3~~ done. One mini-sprint = one PR; every `android/**` PR needs a newer `## x.y.z` on top of `changelog.md` (top is `0.1.3`). Merging to `main` publishes the build to the phone automatically.
-2. **Sprint 4** (next): inference service, then **activation keys** (4B): Firebase anonymous auth + App Check, `khojo-licenses` DynamoDB table, `license` Lambda (`/v1/license/activate`, `/v1/license/status`), Activation screen, server-side license + quota check on every cloud call; the beta key goes away. Port from `X:\KIRA` (see below). Key admin web app in 7C, paid key sales in 8B.
-3. Website download page (`GET /v1/releases/download` is described in the plan but not built; only `latest` exists).
-4. Small updater gaps: no manual "Check for updates" button (it only checks at app start), no Wi-Fi-only option.
+2. **Sprint 4A code is merged** (`inference-service/`: FastAPI text + image embeddings, Docker image with the model baked in, `models.lock` pinned to revision `f775b65a`; `infrastructure/envs/staging`: ECR + Lambda container + Function URL with AWS_IAM auth, per ADR-004 option 1; `deploy-backend.yml`; `scripts/smoke_inference.py`). **Nothing is deployed.** To switch staging on, the account owner must: (a) `terraform apply` in `infrastructure/bootstrap` (adds IAM rights for `khojo-*` roles to the deploy role), (b) create the GitHub environment `staging`, (c) set repo variable `STAGING_DEPLOY_ENABLED=true` and run the workflow. The first real encode (768 numbers, unit length) happens in that smoke test; CI only proved the image builds and the model loads. ADR-004 stays "pending" until cold-start and warm latency are measured there.
+3. **Sprint 4B** (next): `/v1/uploads/presign` + image jobs, then **activation keys**: Firebase anonymous auth + App Check, `khojo-licenses` DynamoDB table, `license` Lambda (`/v1/license/activate`, `/v1/license/status`), Activation screen, server-side license + quota check on every cloud call; the beta key goes away. Port from `X:\KIRA` (see below). Key admin web app in 7C, paid key sales in 8B.
+4. Website download page (`GET /v1/releases/download` is described in the plan but not built; only `latest` exists).
+5. Small updater gaps: no manual "Check for updates" button (it only checks at app start), no Wi-Fi-only option.
 
 ## Needs the user (cannot be done by Claude)
 
