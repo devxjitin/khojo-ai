@@ -40,6 +40,20 @@ def evaluate(results):
     }
 
 
+def parse_relevant(cell):
+    """queries.csv stores several correct answers in one cell, separated by |."""
+    return {part.strip() for part in (cell or "").split("|") if part.strip()}
+
+
+def percentile(values, pct):
+    """Nearest-rank percentile (pct 0-100) of a list of numbers; None for an empty list."""
+    if not values:
+        return None
+    ordered = sorted(values)
+    rank = max(1, -(-len(ordered) * pct // 100))  # ceil(n * pct / 100)
+    return ordered[int(rank) - 1]
+
+
 def load_queries(path):
     with open(path, encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
