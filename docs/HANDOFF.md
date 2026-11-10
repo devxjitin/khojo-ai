@@ -9,12 +9,12 @@ Repo: https://github.com/devxjitin/khojo-ai (private, owner `devxjitin`). AWS ac
 
 ## Where we are
 
-Phase 0 (Foundation, CI/CD, Benchmark) - **code is written and CI-green, but nothing is merged and nothing past the AWS bootstrap is deployed.**
+Phase 0 (Foundation, CI/CD, Benchmark) - **code is written and CI-green. #4 and #5 are merged; #1, #2, #3 are still open. In AWS the bootstrap and `envs/prod` (OTA bucket + update API) are applied.**
 
 | Sprint item | Code | Deployed / live |
 |---|---|---|
 | S1: repo, CI `checks.yml`, Android shell (flavors `ota` + `play`), Terraform bootstrap | ✅ on `main` | Bootstrap ✅ **applied** |
-| S2A: OTA bucket + `khojo-updates` Lambda + API, `publish-update.ps1`, `publish-ota.yml` | ✅ PR #1 (green) | ❌ not applied |
+| S2A: OTA bucket + `khojo-updates` Lambda + API, `publish-update.ps1`, `publish-ota.yml` | ✅ PR #1 (green) | ✅ **applied** (10 Nov 2026, from PR #1's branch); endpoint answers 401 without key, 404 with key until the first release |
 | S2B: in-app updater (ota flavor only) | ✅ PR #2 (green, stacked on #1) | ❌ never run on a phone |
 | S2C: SigLIP 2 benchmark script, Hinglish dictionary, ADR-003/004 | ✅ PR #3 (green, stacked on #2) | ❌ benchmark **never run** |
 | Bootstrap fix: reuse the account's existing GitHub OIDC provider + S3 state backend | ✅ PR #4 (green) | applied from this branch |
@@ -33,12 +33,10 @@ GitHub repo **variables already set:** `AWS_OTA_PUBLISH_ROLE_ARN`, `AWS_BACKEND_
 
 ## Next steps, in order
 
-1. **Apply `infrastructure/envs/prod`** (OTA bucket, Lambda, API; plan was reviewed: 15 to add, 0 change, 0 destroy). Needs approval from the user before applying.
-   - Run from PR #1's branch (`sprint-2a-ota-pipeline`) or after #1 is merged.
-   - A beta key was generated into the scratchpad as `beta_key.txt` (temp folder, may be gone). Nothing is deployed with it yet, so **just generate a new one** if missing: `python -c "import secrets;print(secrets.token_urlsafe(32))"`. Pass as `TF_VAR_beta_key`.
-   - The saved `prod.tfplan` on the old machine state is stale; re-run `terraform plan`.
-   - Init command: see `infrastructure/README.md` ("Prod environment").
-   - Outputs needed afterwards: `api_url` and `ota_bucket`.
+1. ~~Apply `infrastructure/envs/prod`~~ **Done 10 Nov 2026** (15 resources, then a 1-resource IAM fix adding `s3:ListBucket` so a missing `latest.json` is a 404 instead of a 500; the fix is commit `697a582` on PR #1's branch).
+   - `api_url` = `https://237zro3s3h.execute-api.ap-south-1.amazonaws.com`, `ota_bucket` = `khojo-app-updates-143920986615`.
+   - The beta key is in `~/.khojo-android/beta_key.txt` (C:/Users/devxj/.khojo-android/) (not in git). It must be the same value in `APP_CONFIG_PROPERTIES` (`BETA_KEY=`). If that file is lost, generate a new key and re-apply with `TF_VAR_beta_key`.
+   - Later applies: run from the branch that holds the current `envs/prod` code, re-run `terraform plan` first, and ask the user before applying. Init command is in `infrastructure/README.md` ("Prod environment"). In PowerShell quote `'-out=prod.tfplan'`, or the dot splits the argument.
 2. **OTA signing key** (`keytool` command in `docs/CI_CD.md`). The user must back it up offline in 2 places; losing it forces every user to reinstall (there is no Play App Signing to fall back on). Do not regenerate it later.
 3. **GitHub secrets** (ask the user first; do not put secrets in chat): `KHOJO_OTA_KEYSTORE` (base64), `KHOJO_OTA_KEYSTORE_PASSWORD`, `KHOJO_OTA_KEY_ALIAS`, `APP_CONFIG_PROPERTIES` (= `API_BASE_URL=<api_url>` and `BETA_KEY=<same key>`). **GitHub variable** `KHOJO_OTA_BUCKET=<ota_bucket output>`.
 4. **Merge in order:** #4, #5 (docs), #1, #2, #3 (stacked PRs retarget to `main` on their own). Merging #1 triggers `Publish OTA`, which fails unless steps 1-3 are done.
