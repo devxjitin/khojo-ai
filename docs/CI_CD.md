@@ -18,7 +18,7 @@ Runs on every PR and can be called by the release workflow. `scripts/ci_changes.
 
 - **Version bumped:** a PR that reaches the APK must put a newer `## x.y.z` on top of `changelog.md`.
 - **Android:** `testDebugUnitTest lintDebug` with a fixed `-PappVersionCode=1`. One build, no flavors (ADR-002).
-- **Search-quality gate:** `eval/run_eval.py --quick` fails if Recall@5 or MRR@10 falls more than 2 points below `eval/baseline.json`. It passes until the baseline exists (created after the Sprint 2 benchmark).
+- **Search-quality gate:** `eval/run_eval.py --quick` fails if Recall@5 or MRR@10 falls more than 2 points below `eval/baseline.json`. It passes until the baseline exists (the user creates it from their own testing; Claude does not run the benchmark).
 - **Infra:** `terraform fmt -check` and `validate` on each root module.
 
 ## Repository protection (set once the GitHub repo exists)

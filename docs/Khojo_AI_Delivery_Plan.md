@@ -336,8 +336,8 @@ sequenceDiagram
 | Mini | Days | Build | Ship / Done |
 |---|---|---|---|
 | **1A** | 16–18 Nov | Private repo `khojo-ai` (monorepo layout 3.3) · Android skeleton (Compose, Hilt, flavors `ota`/`play` — S2 mein ek build bana diya) · `changelog.md` · `ci_changes.py` + `check_version_bump.py` Ultron se port | `checks.yml` PR par green · branch protection ON |
-| **1B** | 19–23 Nov | AWS: credits balance/expiry note · Budgets alerts · **GPU + Spot vCPU quota increase request (Mumbai)** · Terraform state bucket + lock · OIDC provider + 3 roles · `infra` CI job (plan on PR) | `terraform plan` PR comment mein dikhe |
-| **1C** | 24–26 Nov | ML: 1,000 image eval dataset (consented) + 100 queries En/Hi/Hinglish + labels · `eval/run_eval.py` skeleton · Business: 5 seller interviews | `eval/queries.csv` v1 · interview notes |
+| **1B** | 19–23 Nov | AWS: credits balance/expiry note · Budgets alerts · ~~GPU + Spot vCPU quota increase request (Mumbai)~~ *(postponed to before 8C; not needed now)* · Terraform state bucket + lock · OIDC provider + 3 roles · `infra` CI job (plan on PR) | `terraform plan` PR comment mein dikhe |
+| **1C** | 24–26 Nov | ML: `eval/run_eval.py` skeleton · *(eval dataset of ~1,000 consented images + 100 queries is now the **user's** own testing job, done with images on their phone)* · Business: 5 seller interviews | `eval/queries.csv` v1 · interview notes |
 | Day 10 | 27 Nov | Review + retro | — |
 
 ### S2 · 30 Nov – 13 Dec 2026 — OTA pipeline live + model decision
@@ -346,7 +346,7 @@ sequenceDiagram
 |---|---|---|---|
 | **2A** | 30 Nov – 2 Dec | S3 `khojo-app-updates` · `khojo-updates` Lambda + API GW route · `publish-update.ps1` port · `publish-ota.yml` · OTA signing key generate + backup | **First OTA `0.0.1`** — empty shell app, testers ke phone par install |
 | **2B** | 3–7 Dec | `AppUpdater` + `UpdateManager` + Update card UI · SHA-256 verify · `UpdatedReceiver` · rollout % + min version logic · **`play` flavor hatao → ek build, `com.khojoai.app`** (pehle install se pehle) | `0.0.2` — phone khud "Update available" dikhaye aur `0.0.3` install kare ✅ |
-| **2C** | 8–10 Dec | Benchmark: SigLIP 2 Base vs So400m (Recall@5, MRR@10, latency, RAM, ₹/1000) on GPU + CPU · Lambda vs EC2 cold start · Hinglish dictionary v0 (~500 words) · 5 more interviews | **ADR-003 Model choice** · `models.lock` · ADR-004 Lambda vs EC2 |
+| **2C** | 8–10 Dec | Benchmark/testing **ab user karega** (apne phone + images se); Claude nahi chalayega, GPU abhi nahi chahiye. **Default model: SigLIP 2 Base**, So400m sirf tab jab user ke testing mein Recall@5 ≥5 points behtar ho (script `eval/benchmark_siglip.py` optional tool hai) · Lambda vs EC2 cold start · Hinglish dictionary v0 (~500 words) · 5 more interviews | **ADR-003 Model choice** (user ke testing ke baad, tab tak Base) · `models.lock` · ADR-004 Lambda vs EC2 |
 | Day 10 | 11 Dec | **Phase 0 gate review** | Go → Phase 1 |
 
 ---

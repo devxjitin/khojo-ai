@@ -2,6 +2,8 @@
 
 Answers one question before we build on it: **does SigLIP 2 So400m beat Base by enough to justify the cost?** (blueprint 7.4, ADR-003)
 
+> **Who does what:** testing and the model decision are the **user's**, done by hand with their own images on their own phone. Claude does not build the dataset or run this benchmark. Default model until the user decides: **SigLIP 2 Base**. No GPU is needed for Base (CPU is fine); a GPU only matters if you later want to try So400m, and the Mumbai GPU quota request is postponed until Sprint 8C. Everything below is an optional tool for when the user wants numbers.
+
 ## 1. Build the dataset (you do this; it needs real photos)
 
 Put it in `eval/data/` (gitignored: these are real, consented photos and must never be committed).
@@ -13,7 +15,7 @@ Put it in `eval/data/` (gitignored: these are real, consented photos and must ne
 
 Target: **1,000 photos** (product photos, objects, nature, receipts/screenshots) and **100+ queries** (about a third each of English, Devanagari Hindi, Roman Hinglish), with categories such as `color`, `clothing_detail`, `ocr_amount`, `ambiguous`. A query row with an empty `relevant_asset_ids` is skipped, so the 5 placeholder rows already in `queries.csv` are harmless. Photos of other people need their consent (and see the face-data notes in blueprint 10A before including any).
 
-## 2. Run the benchmark (GPU box, paid from AWS credits)
+## 2. Run the benchmark (optional; Base runs on CPU, So400m wants a GPU)
 
 ```bash
 pip install -r eval/requirements-benchmark.txt
@@ -27,7 +29,7 @@ python eval/benchmark_siglip.py --name base --model-id ... --revision ... --quer
 
 Repeat once with `--device cpu` to get CPU latency. `--hourly-inr` sets the instance price used for the cost column. Results append to `eval/reports/experiments.csv` (gitignored; columns follow blueprint 19.4), one row per language plus `ALL`.
 
-GPU quota note: new accounts often have 0 vCPU quota for G instances in Mumbai. Request it as early as possible (see `infrastructure/README.md`).
+GPU quota note: this account has 0 vCPU quota for G/VT/P instances in Mumbai (checked 10 Nov 2026). It is not requested yet; do that before Sprint 8C, or run So400m on Colab/another rented GPU if you want to try it earlier.
 
 ## 3. Decide
 
