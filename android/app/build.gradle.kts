@@ -15,6 +15,8 @@ val localProperties = Properties().apply {
     if (file.exists()) load(file.inputStream())
 }
 val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "https://api.example.com")
+// Shared key the beta (ota) build sends to the update endpoint. Not a real secret (it is inside the APK); Cognito replaces it in Sprint 7.
+val betaKey: String = localProperties.getProperty("BETA_KEY", "")
 
 // versionCode = minutes since 1970, so every build is newer than the one before and `ota` / `play` flavors never collide.
 // scripts/publish-update.ps1 passes the same number with -PappVersionCode.
@@ -65,10 +67,12 @@ android {
             applicationIdSuffix = ".beta"
             versionNameSuffix = "-beta"
             buildConfigField("String", "UPDATE_CHANNEL", "\"aws-ota\"")
+            buildConfigField("String", "BETA_KEY", "\"$betaKey\"")
         }
         create("play") {
             dimension = "distribution"
             buildConfigField("String", "UPDATE_CHANNEL", "\"google-play\"")
+            buildConfigField("String", "BETA_KEY", "\"\"")
         }
     }
 
@@ -152,6 +156,11 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.58")
     kapt("com.google.dagger:hilt-android-compiler:2.58")
 
+    // Self-update (AWS beta build only; the Play build contains none of this).
+    "otaImplementation"("com.squareup.okhttp3:okhttp:4.12.0")
+
     testImplementation("junit:junit:4.13.2")
+    // Real org.json: the Android one is only a stub in unit tests.
+    "testOtaImplementation"("org.json:json:20240303")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
