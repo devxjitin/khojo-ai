@@ -3,6 +3,11 @@
 The first "## x.y.z" heading is the app version. The "###" sections and "-" bullets below it become the update notes shown on the phone.
 Phase = minor, mini-sprint = patch (e.g. Phase 1 Sprint 4 Mini-C = 0.1.5).
 
+## 0.0.5 - 2026-11-10
+
+### Changed
+- Update test build: if you can read this on your phone, the in-app update works.
+
 ## 0.0.4 - 2026-12-08
 
 ### Changed
