@@ -11,9 +11,9 @@ variable "image_tag" {
 }
 
 variable "memory_mb" {
-  description = "Lambda memory. The CPU share grows with it; ADR-004 plans 8 to 10 GB for the model."
+  description = "Lambda memory. This account is capped at 3008 MB (CreateFunction rejects more); ADR-004 wanted 8 to 10 GB, so ask for a Lambda memory quota increase before judging cold-start speed."
   type        = number
-  default     = 8192
+  default     = 3008
 }
 
 variable "timeout_seconds" {
